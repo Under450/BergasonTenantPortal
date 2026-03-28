@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tenant Rights Act Portal — Bergason Estate Agents</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1a2744;
+  --gold: #c9a84c;
+  --teal: #2a9d8f;
+  --danger: #e53e3e;
+  --text: #333;
+  --text-mid: #666;
+  --text-light: #999;
+  --bg: #F8F7F4;
+  --card-bg: #fff;
+  --border: #e8e5e0;
+  --radius: 8px;
+}
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Views */
+.view { display: none; }
+.view.active { display: block; }
+#view-auth.active { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+/* Auth */
+.auth-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem; width: 100%; max-width: 400px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.auth-title { font-family: 'EB Garamond', Georgia, serif; color: var(--navy); font-size: 1.5rem; text-align: center; }
+.auth-sub { color: var(--text-light); font-size: 0.82rem; text-align: center; margin-top: 0.25rem; }
+.auth-divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+/* Forms */
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-mid); margin-bottom: 0.35rem; }
+.form-input { width: 100%; padding: 0.7rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem; font-family: inherit; background: #fff; transition: border 0.2s; }
+.form-input:focus { outline: none; border-color: var(--navy); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.7rem 1.5rem; border: none; border-radius: var(--radius); font-size: 0.88rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; }
+.btn-navy { background: var(--navy); color: #fff; }
+.btn-navy:hover { background: #243558; }
+.btn-gold { background: var(--gold); color: #fff; }
+.btn-gold:hover { background: #b8963e; }
+.btn-outline { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+.btn-outline:hover { background: var(--navy); color: #fff; }
+.btn-danger-outline { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
+.btn-block { width: 100%; }
+.btn-lg { padding: 0.85rem 2rem; font-size: 0.95rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Header */
+.site-header { background: var(--navy); padding: 0.9rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--gold); }
+.site-header h1 { font-family: 'EB Garamond', Georgia, serif; color: #fff; font-size: 1.1rem; }
+.site-header .subtitle { font-size: 0.65rem; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 1rem; }
+.header-email { color: rgba(255,255,255,0.7); font-size: 0.78rem; }
+.btn-logout { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 0.4rem 0.9rem; font-size: 0.78rem; border-radius: var(--radius); cursor: pointer; font-family: inherit; }
+
+/* Content */
+.content { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+/* Cards */
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+
+/* Alerts */
+.alert { font-size: 0.85rem; padding: 0.75rem 1rem; margin-bottom: 1rem; display: none; border-left: 3px solid; border-radius: var(--radius); line-height: 1.5; }
+.alert.show { display: block; }
+.alert-error { background: #fff5f5; border-color: var(--danger); color: var(--danger); }
+.alert-info { background: #faf8f3; border-color: var(--gold); color: #7a6000; }
+.alert-success { background: #f0faf5; border-color: var(--teal); color: var(--teal); }
+
+/* Spinner */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Loading overlay */
+#loading-overlay { display: none; position: fixed; inset: 0; background: rgba(26,39,68,0.4); z-index: 9999; align-items: center; justify-content: center; }
+#loading-overlay.show { display: flex; }
+#loading-overlay .loader { background: #fff; padding: 2rem 3rem; border-radius: var(--radius); text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+#loading-overlay .loader-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.75rem; }
+#loading-overlay .loader-text { font-size: 0.9rem; color: var(--text-mid); }
+
+/* Drop zones */
+.dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+.dropzone:hover, .dropzone.dragover { border-color: var(--gold); background: #faf8f3; }
+.dropzone.has-file { border-color: var(--teal); background: #f0faf5; }
+.dropzone-icon { margin-bottom: 0.5rem; }
+.dropzone-title { font-weight: 700; color: var(--navy); margin-bottom: 0.25rem; }
+.dropzone-sub { font-size: 0.8rem; color: var(--text-light); }
+.dropzone-filename { font-size: 0.85rem; color: var(--teal); font-weight: 600; margin-top: 0.5rem; }
+
+/* Tenant cards */
+.tenant-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 0.75rem; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; }
+.tenant-card:nth-child(even) { background: #fafaf8; }
+.tenant-num { background: var(--navy); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; margin-right: 1rem; }
+.tenant-info { flex: 1; }
+.tenant-name { font-weight: 700; color: var(--navy); font-size: 0.95rem; }
+.tenant-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 1.5rem; margin-top: 0.4rem; font-size: 0.8rem; }
+.tenant-field-label { color: var(--text-light); }
+.tenant-field-value { color: var(--text); }
+.tenant-ref { font-family: monospace; font-size: 0.75rem; color: var(--text-light); background: #f5f7fa; padding: 3px 8px; border-radius: 4px; }
+.tenant-remove { color: var(--danger); cursor: pointer; font-size: 1.2rem; padding: 4px 8px; border: none; background: none; font-family: inherit; }
+.tenant-remove:hover { background: #fff5f5; border-radius: 4px; }
+
+/* Stats bar */
+.stats-bar { display: flex; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.stat-box { flex: 1; min-width: 100px; border-radius: var(--radius); padding: 14px; text-align: center; }
+.stat-num { font-size: 1.4rem; font-weight: 700; }
+.stat-label { font-size: 0.7rem; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Dashboard table */
+.dash-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.dash-table thead tr { background: #f5f7fa; border-bottom: 2px solid var(--border); }
+.dash-table th { padding: 10px 8px; text-align: left; color: var(--navy); font-weight: 700; font-size: 0.78rem; }
+.dash-table td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+.dash-table tr:nth-child(even) { background: #fafaf8; }
+
+/* Status badges */
+.badge { padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; display: inline-block; }
+.badge-queued { background: #fefcbf; color: #744210; }
+.badge-sent { background: #e9d8fd; color: #553c9a; }
+.badge-delivered { background: #bee3f8; color: #2a4365; }
+.badge-opened { background: #c6f6d5; color: #276749; }
+.badge-bounced { background: #fed7d7; color: #9b2c2c; }
+.badge-posted { background: #faf8f3; color: #7a6000; }
+
+/* Actions bar */
+.actions-bar { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 1rem; }
+.actions-left { display: flex; gap: 0.5rem; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .content { padding: 1rem; }
+  .tenant-fields { grid-template-columns: 1fr; }
+  .stats-bar { flex-direction: column; }
+  .actions-bar { flex-direction: column; gap: 0.75rem; }
+  .dash-table { font-size: 0.72rem; }
+}
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 0.75rem 1.25rem; border-radius: var(--radius); color: #fff; font-size: 0.85rem; font-weight: 600; z-index: 10000; transform: translateY(80px); opacity: 0; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-success { background: var(--teal); }
+.toast-error { background: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+  <div class="loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text" id="loading-text">Please wait...</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════ VIEW: AUTH ═══════════ -->
+<div id="view-auth" class="view active">
+  <div class="auth-panel">
+    <h2 class="auth-title">Tenant Rights Act Portal</h2>
+    <p class="auth-sub">Bergason Estate Agents — admin access only</p>
+    <div class="auth-divider"></div>
+    <div id="auth-error" class="alert alert-error"></div>
+    <div class="form-group">
+      <label class="form-label" for="auth-email">Email</label>
+      <input class="form-input" type="email" id="auth-email" placeholder="admin@bergason.co.uk" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="auth-password">Password</label>
+      <input class="form-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-navy btn-block" id="auth-login-btn" onclick="handleLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ═══════════ VIEW: UPLOAD ═══════════ -->
+<div id="view-upload" class="view">
+  <header class="site-header">
+    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
+    <div class="header-right">
+      <span class="header-email" id="header-email"></span>
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </header>
+  <div class="content">
+    <h2 style="color:var(--navy);margin-bottom:0.5rem;">Upload Documents</h2>
+    <p style="color:var(--text-mid);font-size:0.88rem;margin-bottom:1.5rem;">Upload the tenant spreadsheet and the PDF document to send.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+      <div class="dropzone" id="dz-spreadsheet" onclick="document.getElementById('file-spreadsheet').click()">
+        <input type="file" id="file-spreadsheet" accept=".xlsx,.xls" style="display:none" onchange="handleSpreadsheet(event)"/>
+        <div class="dropzone-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="dropzone-title">Tenant Spreadsheet</div>
+        <div class="dropzone-sub">Drag & drop .xlsx or click to browse</div>
+        <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">Columns: Name, Email, Postal Address, Property ID, Property Address</div>
+        <div class="dropzone-filename" id="dz-spreadsheet-name"></div>
+      </div>
+
+      <div class="dropzone" id="dz-pdf" onclick="document.getElementById('file-pdf').click()">
+        <input type="file" id="file-pdf" accept=".pdf" style="display:none" onchange="handlePdf(event)"/>
+        <div class="dropzone-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1a2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="dropzone-title">PDF Document</div>
+        <div class="dropzone-sub">Drag & drop the PDF to send</div>
+        <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">This PDF will be attached to every email</div>
+        <div class="dropzone-filename" id="dz-pdf-name"></div>
+      </div>
+    </div>
+
+    <div id="upload-errors" class="alert alert-error"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-outline" id="btn-view-dashboard" onclick="showView('view-dashboard');loadDashboard();" style="font-size:0.82rem;">View Previous Batches</button>
+        <button class="btn btn-navy" style="font-size:0.82rem;" onclick="openSingleSend()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send Single Email
+        </button>
+      </div>
+      <button class="btn btn-gold btn-lg" id="btn-process" onclick="processUpload()" disabled>Process Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VIEW: REVIEW ═══════════ -->
+<div id="view-review" class="view">
+  <header class="site-header">
+    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
+    <div class="header-right">
+      <span class="header-email" id="header-email-review"></span>
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </header>
+  <div class="content">
+    <h2 style="color:var(--navy);margin-bottom:0.5rem;">Review Tenants</h2>
+    <div id="review-info" class="alert alert-info"></div>
+    <div id="tenant-list"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid var(--border);margin-top:0.5rem;">
+      <div style="font-size:0.82rem;color:var(--text-mid);" id="review-summary"></div>
+      <div style="display:flex;gap:0.75rem;">
+        <button class="btn btn-danger-outline" onclick="cancelReview()">Cancel</button>
+        <button class="btn btn-navy btn-lg" id="btn-send-all" onclick="sendAll()">Send All</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VIEW: DASHBOARD ═══════════ -->
+<div id="view-dashboard" class="view">
+  <header class="site-header">
+    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
+    <div class="header-right">
+      <span class="header-email" id="header-email-dash"></span>
+      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="stats-bar" id="stats-bar"></div>
+
+    <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+      <input class="form-input" id="dash-search" placeholder="Search by name or property ID..." style="flex:1;min-width:200px;" oninput="filterDashboard()"/>
+      <select class="form-input" id="dash-filter" style="width:auto;min-width:140px;" onchange="filterDashboard()">
+        <option value="">All Statuses</option>
+        <option value="queued">Queued</option>
+        <option value="sent">Sent</option>
+        <option value="delivered">Delivered</option>
+        <option value="opened">Opened</option>
+        <option value="bounced">Bounced</option>
+        <option value="posted">Posted</option>
+      </select>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="dash-table" id="dash-table">
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Tenant</th>
+            <th>Property</th>
+            <th style="text-align:center;">Status</th>
+            <th>Sent</th>
+            <th>Delivered</th>
+            <th>Opened</th>
+            <th style="text-align:center;">Postal</th>
+            <th style="text-align:center;">Cert</th>
+            <th style="text-align:center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="dash-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="actions-bar">
+      <div class="actions-left">
+        <button class="btn btn-outline" style="font-size:0.8rem;" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-outline" style="font-size:0.8rem;" onclick="sendNextBatch()">Send Next Batch</button>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-navy" style="font-size:0.8rem;" onclick="openSingleSend()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send Single Email
+        </button>
+        <button class="btn btn-gold" onclick="newBatch()">New Batch</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: SINGLE SEND ═══════════ -->
+<div id="modal-single-send" style="display:none;position:fixed;inset:0;background:rgba(26,39,68,0.5);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:var(--radius);max-width:520px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+    <div style="background:var(--navy);padding:1rem 1.5rem;border-radius:var(--radius) var(--radius) 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h3 style="color:#fff;font-family:'EB Garamond',Georgia,serif;font-size:1.1rem;margin:0;">Send Single Email</h3>
+        <div style="font-size:0.65rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;">PDF auto-attached from current batch</div>
+      </div>
+      <button onclick="closeSingleSend()" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3rem;cursor:pointer;padding:4px 8px;">&times;</button>
+    </div>
+    <div style="padding:1.5rem;">
+      <div id="single-send-error" class="alert alert-error"></div>
+      <div id="single-send-success" class="alert alert-success"></div>
+      <div class="form-group">
+        <label class="form-label" for="ss-name">Tenant Name *</label>
+        <input class="form-input" type="text" id="ss-name" placeholder="e.g. John Smith"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="ss-email">Email Address *</label>
+        <input class="form-input" type="email" id="ss-email" placeholder="e.g. john.smith@email.co.uk"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="ss-address">Postal Address *</label>
+        <input class="form-input" type="text" id="ss-address" placeholder="e.g. 14 Oak Lane, Preston, PR1 2AB"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label class="form-label" for="ss-propid">Property ID</label>
+          <input class="form-input" type="text" id="ss-propid" placeholder="e.g. PROP-0042"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ss-propaddr">Property Address</label>
+          <input class="form-input" type="text" id="ss-propaddr" placeholder="e.g. Oak Lane House"/>
+        </div>
+      </div>
+      <div id="ss-pdf-dropzone" class="dropzone" style="padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="document.getElementById('ss-pdf-file').click()">
+        <input type="file" id="ss-pdf-file" accept=".pdf" style="display:none" onchange="handleSingleSendPdf(event)"/>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span id="ss-pdf-info" style="font-size:0.82rem;color:var(--text-mid);">No PDF attached — drag or click to add</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button class="btn btn-outline" onclick="closeSingleSend()">Cancel</button>
+        <button class="btn btn-navy" id="btn-single-send" onclick="submitSingleSend()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   FIREBASE INIT
+═══════════════════════════════════ */
+var firebaseConfig = {
+  apiKey: "AIzaSyBvkD-azpDQwUY8W5YpxwvsNWZ9rezpT1Y",
+  authDomain: "bergason-block-management.firebaseapp.com",
+  projectId: "bergason-block-management",
+  storageBucket: "bergason-block-management.firebasestorage.app",
+  messagingSenderId: "911922183470",
+  appId: "1:911922183470:web:947d372c13cc3a2a1ecebf"
+};
+firebase.initializeApp(firebaseConfig);
+
+var db = firebase.firestore();
+var fns = firebase.functions();
+var storage = firebase.storage();
+var adminUser = null;
+var parsedTenants = [];
+var pdfFile = null;
+var pdfFileName = '';
+var pdfFileSize = 0;
+var currentBatchId = null;
+var allDeliveries = [];
+var unsubscribeDashboard = null;
+
+/* ═══════════════════════════════════
+   UTILITIES
+═══════════════════════════════════ */
+function showView(id) {
+  var views = document.querySelectorAll('.view');
+  for (var i = 0; i < views.length; i++) views[i].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+}
+
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text || 'Please wait...';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+function showToast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast toast-' + (type || 'success') + ' show';
+  setTimeout(function() { el.classList.remove('show'); }, 4000);
+}
+
+function showError(id, msg) {
+  var el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+function clearError(id) {
+  var el = document.getElementById(id);
+  if (el) { el.textContent = ''; el.classList.remove('show'); }
+}
+
+function setLoading(btnId, on) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (on) {
+    btn.disabled = true;
+    btn.setAttribute('data-orig', btn.innerHTML);
+    btn.innerHTML = '<span class="spinner"></span> Please wait...';
+  } else {
+    btn.disabled = false;
+    var orig = btn.getAttribute('data-orig');
+    if (orig) btn.innerHTML = orig;
+  }
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function formatDateTime(ts) {
+  if (!ts) return '\u2014';
+  var d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', '
+    + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+/* ═══════════════════════════════════
+   AUTH
+═══════════════════════════════════ */
+function handleLogin() {
+  clearError('auth-error');
+  var email = document.getElementById('auth-email').value.trim();
+  var pass = document.getElementById('auth-password').value;
+  if (!email || !pass) { showError('auth-error', 'Please enter your email and password.'); return; }
+
+  setLoading('auth-login-btn', true);
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(function(cred) { return checkAdmin(cred.user); })
+    .catch(function(err) {
+      setLoading('auth-login-btn', false);
+      var msgs = {
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/user-not-found': 'No account found.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/invalid-credential': 'Invalid credentials.',
+        'auth/too-many-requests': 'Too many attempts. Try later.'
+      };
+      showError('auth-error', msgs[err.code] || 'Login failed. Please try again.');
+    });
+}
+
+function checkAdmin(user) {
+  return db.collection('tenant_portal_admins').doc(user.uid).get()
+    .then(function(doc) {
+      if (!doc.exists) {
+        showError('auth-error', 'Access denied. You are not authorised to use this portal.');
+        firebase.auth().signOut();
+        setLoading('auth-login-btn', false);
+        return;
+      }
+      adminUser = user;
+      setLoading('auth-login-btn', false);
+      document.getElementById('header-email').textContent = user.email;
+      document.getElementById('header-email-review').textContent = user.email;
+      document.getElementById('header-email-dash').textContent = user.email;
+      showView('view-upload');
+    })
+    .catch(function(err) {
+      setLoading('auth-login-btn', false);
+      showError('auth-error', 'Error verifying access: ' + err.message);
+    });
+}
+
+function handleLogout() {
+  if (unsubscribeDashboard) { unsubscribeDashboard(); unsubscribeDashboard = null; }
+  firebase.auth().signOut().then(function() {
+    adminUser = null;
+    parsedTenants = [];
+    pdfFile = null;
+    currentBatchId = null;
+    allDeliveries = [];
+    showView('view-auth');
+  });
+}
+
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) { checkAdmin(user); } else { showView('view-auth'); }
+});
+
+document.getElementById('auth-password').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') handleLogin();
+});
+
+/* ═══════════════════════════════════
+   DRAG & DROP
+═══════════════════════════════════ */
+function initDropzone(dzId, handler) {
+  var dz = document.getElementById(dzId);
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function(e) { e.preventDefault(); dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) handler(e.dataTransfer.files[0]);
+  });
+}
+
+initDropzone('dz-spreadsheet', function(file) {
+  document.getElementById('file-spreadsheet').files = createFileList(file);
+  handleSpreadsheetFile(file);
+});
+initDropzone('dz-pdf', function(file) {
+  document.getElementById('file-pdf').files = createFileList(file);
+  handlePdfFile(file);
+});
+
+function createFileList(file) {
+  var dt = new DataTransfer();
+  dt.items.add(file);
+  return dt.files;
+}
+
+/* ═══════════════════════════════════
+   SPREADSHEET PARSING
+═══════════════════════════════════ */
+function handleSpreadsheet(e) {
+  if (e.target.files.length > 0) handleSpreadsheetFile(e.target.files[0]);
+}
+
+function handleSpreadsheetFile(file) {
+  clearError('upload-errors');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var workbook = XLSX.read(e.target.result, { type: 'array' });
+      var sheet = workbook.Sheets[workbook.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (rows.length === 0) {
+        showError('upload-errors', 'Spreadsheet is empty.');
+        return;
+      }
+
+      // Flexible column matching
+      parsedTenants = rows.map(function(row) {
+        var mapped = {};
+        Object.keys(row).forEach(function(key) {
+          var k = key.toLowerCase().trim();
+          if (k === 'tenant name' || k === 'name' || k === 'full name' || k === 'tenant') mapped.tenantName = String(row[key]).trim();
+          else if (k === 'email' || k === 'email address' || k === 'e-mail') mapped.email = String(row[key]).trim().toLowerCase();
+          else if (k === 'postal address' || k === 'address' || k === 'home address' || k === 'tenant address') mapped.postalAddress = String(row[key]).trim();
+          else if (k === 'property id' || k === 'property ref' || k === 'property reference' || k === 'propertyid') mapped.propertyId = String(row[key]).trim();
+          else if (k === 'property address' || k === 'property') mapped.propertyAddress = String(row[key]).trim();
+        });
+        return mapped;
+      });
+
+      // Validate
+      var errors = [];
+      parsedTenants.forEach(function(t, i) {
+        if (!t.tenantName) errors.push('Row ' + (i + 2) + ': Missing tenant name');
+        if (!t.email) errors.push('Row ' + (i + 2) + ': Missing email');
+        if (!t.postalAddress) errors.push('Row ' + (i + 2) + ': Missing postal address');
+      });
+
+      if (errors.length > 0) {
+        showError('upload-errors', errors.slice(0, 5).join('. ') + (errors.length > 5 ? ' ... and ' + (errors.length - 5) + ' more.' : '.'));
+      }
+
+      // Filter out invalid rows
+      parsedTenants = parsedTenants.filter(function(t) { return t.tenantName && t.email; });
+
+      document.getElementById('dz-spreadsheet').classList.add('has-file');
+      document.getElementById('dz-spreadsheet-name').textContent = file.name + ' — ' + parsedTenants.length + ' tenants';
+      checkUploadReady();
+    } catch (err) {
+      showError('upload-errors', 'Failed to parse spreadsheet: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function handlePdf(e) {
+  if (e.target.files.length > 0) handlePdfFile(e.target.files[0]);
+}
+
+function handlePdfFile(file) {
+  pdfFile = file;
+  pdfFileName = file.name;
+  pdfFileSize = file.size;
+  document.getElementById('dz-pdf').classList.add('has-file');
+  document.getElementById('dz-pdf-name').textContent = file.name + ' — ' + formatBytes(file.size);
+  checkUploadReady();
+}
+
+function checkUploadReady() {
+  document.getElementById('btn-process').disabled = !(parsedTenants.length > 0 && pdfFile);
+}
+
+/* ═══════════════════════════════════
+   PROCESS → REVIEW
+═══════════════════════════════════ */
+function processUpload() {
+  // Generate delivery refs
+  var year = new Date().getFullYear();
+  parsedTenants.forEach(function(t, i) {
+    t.deliveryRef = 'BGN-' + year + '-' + String(i + 1).padStart(4, '0');
+  });
+
+  // Show info banner
+  if (parsedTenants.length > 100) {
+    var batches = Math.ceil(parsedTenants.length / 100);
+    showError('review-info', ''); // clear
+    var info = document.getElementById('review-info');
+    info.textContent = parsedTenants.length + ' tenants — will be sent in ' + batches + ' batches over ' + batches + ' days (100 emails/day limit).';
+    info.classList.add('show');
+  }
+
+  // Render tenant cards
+  renderTenantCards();
+
+  // Summary
+  document.getElementById('review-summary').innerHTML = '<strong>' + parsedTenants.length + '</strong> tenants &middot; <strong>' + escapeHtml(pdfFileName) + '</strong> (' + formatBytes(pdfFileSize) + ')';
+  document.getElementById('btn-send-all').textContent = 'Send All ' + parsedTenants.length;
+
+  document.getElementById('header-email-review').textContent = adminUser.email;
+  showView('view-review');
+}
+
+function renderTenantCards() {
+  var html = '';
+  parsedTenants.forEach(function(t, i) {
+    html += '<div class="tenant-card" id="tc-' + i + '">'
+      + '<div style="display:flex;align-items:flex-start;flex:1;">'
+      + '<div class="tenant-num">' + (i + 1) + '</div>'
+      + '<div class="tenant-info">'
+      + '<div class="tenant-name">' + escapeHtml(t.tenantName) + '</div>'
+      + '<div class="tenant-fields">'
+      + '<div><span class="tenant-field-label">Email:</span> <span class="tenant-field-value">' + escapeHtml(t.email) + '</span></div>'
+      + '<div><span class="tenant-field-label">Property ID:</span> <span class="tenant-field-value" style="font-family:monospace;">' + escapeHtml(t.propertyId || '') + '</span></div>'
+      + '<div><span class="tenant-field-label">Tenant Address:</span> <span class="tenant-field-value">' + escapeHtml(t.postalAddress) + '</span></div>'
+      + '<div><span class="tenant-field-label">Property:</span> <span class="tenant-field-value">' + escapeHtml(t.propertyAddress || '') + '</span></div>'
+      + '</div></div></div>'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span class="tenant-ref">' + t.deliveryRef + '</span>'
+      + '<button class="tenant-remove" onclick="removeTenant(' + i + ')" title="Remove">&times;</button>'
+      + '</div></div>';
+  });
+  document.getElementById('tenant-list').innerHTML = html;
+}
+
+function removeTenant(index) {
+  parsedTenants.splice(index, 1);
+  // Re-generate refs
+  var year = new Date().getFullYear();
+  parsedTenants.forEach(function(t, i) {
+    t.deliveryRef = 'BGN-' + year + '-' + String(i + 1).padStart(4, '0');
+  });
+  renderTenantCards();
+  document.getElementById('review-summary').innerHTML = '<strong>' + parsedTenants.length + '</strong> tenants &middot; <strong>' + escapeHtml(pdfFileName) + '</strong> (' + formatBytes(pdfFileSize) + ')';
+  document.getElementById('btn-send-all').textContent = 'Send All ' + parsedTenants.length;
+}
+
+function cancelReview() {
+  parsedTenants = [];
+  pdfFile = null;
+  document.getElementById('dz-spreadsheet').classList.remove('has-file');
+  document.getElementById('dz-pdf').classList.remove('has-file');
+  document.getElementById('dz-spreadsheet-name').textContent = '';
+  document.getElementById('dz-pdf-name').textContent = '';
+  document.getElementById('btn-process').disabled = true;
+  showView('view-upload');
+}
+
+/* ═══════════════════════════════════
+   SEND ALL
+═══════════════════════════════════ */
+async function sendAll() {
+  showLoading('Preparing batch...');
+
+  try {
+    // 1. Compute SHA-256 hash of PDF
+    var pdfArrayBuffer = await pdfFile.arrayBuffer();
+    var hashBuffer = await crypto.subtle.digest('SHA-256', pdfArrayBuffer);
+    var hashArray = Array.from(new Uint8Array(hashBuffer));
+    var pdfHash = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+
+    // 2. Create batch doc
+    var batchRef = await db.collection('tenant_batches').add({
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: adminUser.uid,
+      documentName: pdfFileName,
+      documentHash: pdfHash,
+      documentPages: 4, // We can't easily count PDF pages client-side without a lib; default to 4 as spec says
+      documentSize: pdfFileSize,
+      documentStoragePath: '', // Will update after upload
+      totalRecipients: parsedTenants.length,
+      status: 'processing',
+    });
+    currentBatchId = batchRef.id;
+
+    // 3. Upload PDF to Storage
+    showLoading('Uploading PDF...');
+    var storagePath = 'tenant_portal/' + currentBatchId + '/document.pdf';
+    var storageRef = storage.ref(storagePath);
+    await storageRef.put(pdfFile);
+    await batchRef.update({ documentStoragePath: storagePath });
+
+    // 4. Create delivery docs
+    showLoading('Creating delivery records (' + parsedTenants.length + ')...');
+    var batch = db.batch();
+    parsedTenants.forEach(function(t) {
+      var ref = db.collection('tenant_deliveries').doc();
+      batch.set(ref, {
+        batchId: currentBatchId,
+        deliveryRef: t.deliveryRef,
+        tenantName: t.tenantName,
+        email: t.email,
+        postalAddress: t.postalAddress,
+        propertyId: t.propertyId || '',
+        propertyAddress: t.propertyAddress || '',
+        status: 'queued',
+        resendMessageId: null,
+        sentAt: null,
+        deliveredAt: null,
+        openedAt: null,
+        bouncedAt: null,
+        bounceReason: null,
+        postalSentAt: null,
+        postalTrackingRef: null,
+        certificateStoragePath: null,
+      });
+    });
+    await batch.commit();
+
+    // 5. Send first batch (up to 100)
+    showLoading('Sending first batch...');
+    var sendBatch = fns.httpsCallable('sendTenantBatch');
+    var result = await sendBatch({ batchId: currentBatchId });
+
+    hideLoading();
+    showToast(result.data.sent + ' emails sent. ' + (result.data.errors > 0 ? result.data.errors + ' failed.' : ''), result.data.errors > 0 ? 'error' : 'success');
+
+    // Show dashboard
+    loadDashboard();
+    showView('view-dashboard');
+
+  } catch (err) {
+    hideLoading();
+    console.error('Send error:', err);
+    showToast('Failed to send: ' + err.message, 'error');
+  }
+}
+
+/* ═══════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════ */
+function loadDashboard() {
+  document.getElementById('header-email-dash').textContent = adminUser ? adminUser.email : '';
+
+  if (unsubscribeDashboard) { unsubscribeDashboard(); }
+
+  // If we have a currentBatchId, listen to that batch
+  // Otherwise, get the latest batch
+  if (!currentBatchId) {
+    db.collection('tenant_batches')
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+      .then(function(snap) {
+        if (!snap.empty) {
+          currentBatchId = snap.docs[0].id;
+          subscribeToDashboard();
+        } else {
+          document.getElementById('dash-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-light);">No batches yet. Upload a spreadsheet to get started.</td></tr>';
+        }
+      });
+  } else {
+    subscribeToDashboard();
+  }
+}
+
+function subscribeToDashboard() {
+  unsubscribeDashboard = db.collection('tenant_deliveries')
+    .where('batchId', '==', currentBatchId)
+    .onSnapshot(function(snap) {
+      allDeliveries = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        d.id = doc.id;
+        allDeliveries.push(d);
+      });
+      // Sort by delivery ref
+      allDeliveries.sort(function(a, b) { return a.deliveryRef.localeCompare(b.deliveryRef); });
+      renderDashboard();
+    });
+}
+
+function renderDashboard() {
+  // Stats
+  var counts = { delivered: 0, opened: 0, queued: 0, sent: 0, bounced: 0, posted: 0 };
+  allDeliveries.forEach(function(d) { if (counts[d.status] !== undefined) counts[d.status]++; });
+
+  document.getElementById('stats-bar').innerHTML =
+    '<div class="stat-box" style="background:#f0faf5;"><div class="stat-num" style="color:#38a169;">' + counts.delivered + '</div><div class="stat-label">Delivered</div></div>'
+    + '<div class="stat-box" style="background:#ebf8ff;"><div class="stat-num" style="color:#3182ce;">' + counts.opened + '</div><div class="stat-label">Opened</div></div>'
+    + '<div class="stat-box" style="background:#faf8f3;"><div class="stat-num" style="color:#c9a84c;">' + (counts.queued + counts.sent) + '</div><div class="stat-label">Queued/Sent</div></div>'
+    + '<div class="stat-box" style="background:#fff5f5;"><div class="stat-num" style="color:#e53e3e;">' + (counts.bounced + counts.posted) + '</div><div class="stat-label">Bounced/Posted</div></div>';
+
+  filterDashboard();
+}
+
+function filterDashboard() {
+  var search = (document.getElementById('dash-search').value || '').toLowerCase();
+  var status = document.getElementById('dash-filter').value;
+
+  var filtered = allDeliveries.filter(function(d) {
+    if (status && d.status !== status) return false;
+    if (search && d.tenantName.toLowerCase().indexOf(search) === -1 && d.propertyId.toLowerCase().indexOf(search) === -1 && d.deliveryRef.toLowerCase().indexOf(search) === -1) return false;
+    return true;
+  });
+
+  var html = '';
+  filtered.forEach(function(d) {
+    html += '<tr>'
+      + '<td style="font-family:monospace;font-weight:600;color:var(--navy);">' + escapeHtml(d.deliveryRef) + '</td>'
+      + '<td>' + escapeHtml(d.tenantName) + '</td>'
+      + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyId) + '</td>'
+      + '<td style="text-align:center;"><span class="badge badge-' + d.status + '">' + d.status.charAt(0).toUpperCase() + d.status.slice(1) + '</span></td>'
+      + '<td>' + formatDateTime(d.sentAt) + '</td>'
+      + '<td>' + formatDateTime(d.deliveredAt) + '</td>'
+      + '<td>' + formatDateTime(d.openedAt) + '</td>'
+      + '<td style="text-align:center;">' + postalCell(d) + '</td>'
+      + '<td style="text-align:center;">' + (d.status !== 'queued' ? '<a href="#" onclick="downloadCert(\'' + d.id + '\');return false;" style="color:#3182ce;font-weight:600;text-decoration:underline;">PDF</a>' : '\u2014') + '</td>'
+      + '<td style="text-align:center;">' + (d.status === 'queued' ? '<a href="#" onclick="sendSingle(\'' + d.id + '\');return false;" style="color:var(--gold);font-weight:600;font-size:0.75rem;text-decoration:underline;">Send</a>' : '') + '</td>'
+      + '</tr>';
+  });
+
+  if (filtered.length === 0) {
+    html = '<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:var(--text-light);">No deliveries match your search.</td></tr>';
+  }
+
+  document.getElementById('dash-tbody').innerHTML = html;
+}
+
+/* ═══════════════════════════════════
+   DASHBOARD ACTIONS
+═══════════════════════════════════ */
+/* ═══════════════════════════════════
+   POSTAL PROOF UPLOAD
+═══════════════════════════════════ */
+function postalCell(d) {
+  if (d.postalProofPath) {
+    return '<a href="#" onclick="viewPostalProof(\'' + d.id + '\');return false;" style="color:#38a169;font-weight:600;font-size:0.75rem;text-decoration:underline;">View Proof</a>';
+  }
+  if (d.status === 'bounced') {
+    return '<label style="cursor:pointer;color:#c9a84c;font-weight:600;font-size:0.72rem;text-decoration:underline;">'
+      + 'Upload Proof'
+      + '<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadPostalProof(\'' + d.id + '\', this.files[0])"/>'
+      + '</label>';
+  }
+  if (d.status === 'posted') {
+    return '<span style="color:#38a169;font-size:0.85rem;">&#10003;</span>';
+  }
+  return '\u2014';
+}
+
+function uploadPostalProof(deliveryId, file) {
+  if (!file) return;
+  showLoading('Uploading proof of posting...');
+
+  var delivery = allDeliveries.find(function(d) { return d.id === deliveryId; });
+  if (!delivery) { hideLoading(); showToast('Delivery not found.', 'error'); return; }
+
+  var ext = file.name.split('.').pop().toLowerCase();
+  var storagePath = 'tenant_portal/' + delivery.batchId + '/postal_proof/' + delivery.deliveryRef + '.' + ext;
+  var storageRef = storage.ref(storagePath);
+
+  storageRef.put(file)
+    .then(function() {
+      var now = new Date();
+      return db.collection('tenant_deliveries').doc(deliveryId).update({
+        status: 'posted',
+        postalProofPath: storagePath,
+        postalSentAt: now,
+      });
+    })
+    .then(function() {
+      // Append-only event log
+      return db.collection('tenant_deliveries').doc(deliveryId).collection('events').add({
+        type: 'postal_dispatched',
+        timestamp: new Date(),
+        source: 'manual_upload',
+        rawPayload: { filename: file.name, size: file.size, uploadedBy: adminUser.email },
+      });
+    })
+    .then(function() {
+      hideLoading();
+      showToast('Proof of posting uploaded for ' + delivery.deliveryRef, 'success');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Upload failed: ' + err.message, 'error');
+    });
+}
+
+function viewPostalProof(deliveryId) {
+  var delivery = allDeliveries.find(function(d) { return d.id === deliveryId; });
+  if (!delivery || !delivery.postalProofPath) { showToast('No proof uploaded.', 'error'); return; }
+
+  showLoading('Loading proof...');
+  storage.ref(delivery.postalProofPath).getDownloadURL()
+    .then(function(url) {
+      hideLoading();
+      window.open(url, '_blank');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Failed to load proof: ' + err.message, 'error');
+    });
+}
+
+function downloadCert(deliveryId) {
+  showLoading('Generating certificate...');
+  var genCert = fns.httpsCallable('generateCertificate');
+  genCert({ deliveryId: deliveryId })
+    .then(function(result) {
+      hideLoading();
+      window.open(result.data.url, '_blank');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Failed to generate certificate: ' + err.message, 'error');
+    });
+}
+
+/* ═══════════════════════════════════
+   SINGLE SEND MODAL
+═══════════════════════════════════ */
+var singleSendPdfFile = null;
+
+function openSingleSend() {
+  clearError('single-send-error');
+  clearError('single-send-success');
+  document.getElementById('ss-name').value = '';
+  document.getElementById('ss-email').value = '';
+  document.getElementById('ss-address').value = '';
+  document.getElementById('ss-propid').value = '';
+  document.getElementById('ss-propaddr').value = '';
+  singleSendPdfFile = null;
+  document.getElementById('ss-pdf-info').textContent = 'No PDF attached — drag or click to add';
+  document.getElementById('ss-pdf-info').style.cursor = 'pointer';
+  document.getElementById('ss-pdf-dropzone').classList.remove('has-file');
+
+  var modal = document.getElementById('modal-single-send');
+  modal.style.display = 'flex';
+}
+
+function closeSingleSend() {
+  document.getElementById('modal-single-send').style.display = 'none';
+}
+
+// Close modal on backdrop click
+document.getElementById('modal-single-send').addEventListener('click', function(e) {
+  if (e.target === this) closeSingleSend();
+});
+
+function handleSingleSendPdf(e) {
+  if (e.target.files.length > 0) {
+    singleSendPdfFile = e.target.files[0];
+    document.getElementById('ss-pdf-info').textContent = singleSendPdfFile.name + ' — ' + formatBytes(singleSendPdfFile.size);
+    document.getElementById('ss-pdf-dropzone').classList.add('has-file');
+  }
+}
+
+// Drag and drop for single send PDF
+(function() {
+  var dz = document.getElementById('ss-pdf-dropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function(e) { e.preventDefault(); dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+      singleSendPdfFile = e.dataTransfer.files[0];
+      document.getElementById('ss-pdf-info').textContent = singleSendPdfFile.name + ' — ' + formatBytes(singleSendPdfFile.size);
+      dz.classList.add('has-file');
+    }
+  });
+})();
+
+async function submitSingleSend() {
+  clearError('single-send-error');
+  clearError('single-send-success');
+
+  var name = document.getElementById('ss-name').value.trim();
+  var email = document.getElementById('ss-email').value.trim().toLowerCase();
+  var address = document.getElementById('ss-address').value.trim();
+  var propId = document.getElementById('ss-propid').value.trim();
+  var propAddr = document.getElementById('ss-propaddr').value.trim();
+
+  if (!name || !email || !address) {
+    showError('single-send-error', 'Name, email, and postal address are required.');
+    return;
+  }
+  if (!singleSendPdfFile) {
+    showError('single-send-error', 'Please attach a PDF document.');
+    return;
+  }
+
+  setLoading('btn-single-send', true);
+
+  try {
+    // 1. Compute SHA-256 hash
+    var pdfArrayBuffer = await singleSendPdfFile.arrayBuffer();
+    var hashBuffer = await crypto.subtle.digest('SHA-256', pdfArrayBuffer);
+    var hashArray = Array.from(new Uint8Array(hashBuffer));
+    var pdfHash = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+
+    // 2. Create a single-send batch
+    var batchRef = await db.collection('tenant_batches').add({
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: adminUser.uid,
+      documentName: singleSendPdfFile.name,
+      documentHash: pdfHash,
+      documentPages: 4,
+      documentSize: singleSendPdfFile.size,
+      documentStoragePath: '',
+      totalRecipients: 1,
+      status: 'processing',
+      singleSend: true,
+    });
+
+    // 3. Upload PDF to Storage
+    var storagePath = 'tenant_portal/' + batchRef.id + '/document.pdf';
+    var storageRefPath = storage.ref(storagePath);
+    await storageRefPath.put(singleSendPdfFile);
+    await batchRef.update({ documentStoragePath: storagePath });
+
+    // 4. Generate delivery ref
+    var year = new Date().getFullYear();
+    var countSnap = await db.collection('tenant_deliveries').orderBy('deliveryRef', 'desc').limit(1).get();
+    var nextNum = 1;
+    if (!countSnap.empty) {
+      var lastRef = countSnap.docs[0].data().deliveryRef;
+      var lastNum = parseInt(lastRef.split('-').pop(), 10);
+      if (!isNaN(lastNum)) nextNum = lastNum + 1;
+    }
+    var deliveryRef = 'BGN-' + year + '-' + String(nextNum).padStart(4, '0');
+
+    // 5. Create delivery doc
+    var deliveryDocRef = await db.collection('tenant_deliveries').add({
+      batchId: batchRef.id,
+      deliveryRef: deliveryRef,
+      tenantName: name,
+      email: email,
+      postalAddress: address,
+      propertyId: propId,
+      propertyAddress: propAddr,
+      status: 'queued',
+      resendMessageId: null,
+      sentAt: null,
+      deliveredAt: null,
+      openedAt: null,
+      bouncedAt: null,
+      bounceReason: null,
+      postalSentAt: null,
+      postalTrackingRef: null,
+      postalProofPath: null,
+      certificateStoragePath: null,
+    });
+
+    // 6. Send immediately
+    var sendBatchFn = fns.httpsCallable('sendTenantBatch');
+    var result = await sendBatchFn({ batchId: batchRef.id, singleDeliveryId: deliveryDocRef.id });
+
+    setLoading('btn-single-send', false);
+
+    if (result.data.sent > 0) {
+      var successEl = document.getElementById('single-send-success');
+      successEl.textContent = 'Email sent to ' + name + ' (' + email + ') — Ref: ' + deliveryRef;
+      successEl.classList.add('show');
+      // Clear form for another send
+      document.getElementById('ss-name').value = '';
+      document.getElementById('ss-email').value = '';
+      document.getElementById('ss-address').value = '';
+      document.getElementById('ss-propid').value = '';
+      document.getElementById('ss-propaddr').value = '';
+
+      // Update dashboard if viewing this batch
+      currentBatchId = batchRef.id;
+      loadDashboard();
+    } else {
+      showError('single-send-error', 'Email created but send failed. Check dashboard.');
+    }
+
+  } catch (err) {
+    setLoading('btn-single-send', false);
+    showError('single-send-error', 'Failed: ' + err.message);
+  }
+}
+
+function sendSingle(deliveryId) {
+  var delivery = allDeliveries.find(function(d) { return d.id === deliveryId; });
+  if (!delivery) { showToast('Delivery not found.', 'error'); return; }
+  if (delivery.status !== 'queued') { showToast('Already sent.', 'error'); return; }
+
+  showLoading('Sending to ' + delivery.tenantName + '...');
+  var sendBatch = fns.httpsCallable('sendTenantBatch');
+  // We send the whole batch but the function picks up queued ones — to send just one,
+  // we temporarily mark others, but simpler: just call the function with a singleDeliveryId
+  // For now, use the batch function which sends up to 100 queued — acceptable for single send
+  sendBatch({ batchId: delivery.batchId, singleDeliveryId: deliveryId })
+    .then(function(result) {
+      hideLoading();
+      showToast('Email sent to ' + delivery.tenantName, 'success');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Send failed: ' + err.message, 'error');
+    });
+}
+
+function sendNextBatch() {
+  if (!currentBatchId) { showToast('No active batch.', 'error'); return; }
+  showLoading('Sending next batch...');
+  var sendBatch = fns.httpsCallable('sendTenantBatch');
+  sendBatch({ batchId: currentBatchId })
+    .then(function(result) {
+      hideLoading();
+      showToast(result.data.sent + ' emails sent.' + (result.data.errors > 0 ? ' ' + result.data.errors + ' failed.' : ''), result.data.errors > 0 ? 'error' : 'success');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Send failed: ' + err.message, 'error');
+    });
+}
+
+function exportCSV() {
+  var csv = 'Delivery Ref,Tenant Name,Email,Postal Address,Property ID,Property Address,Status,Sent At,Delivered At,Opened At,Bounce Reason,Postal Tracking\n';
+  allDeliveries.forEach(function(d) {
+    csv += [
+      d.deliveryRef,
+      '"' + (d.tenantName || '').replace(/"/g, '""') + '"',
+      d.email,
+      '"' + (d.postalAddress || '').replace(/"/g, '""') + '"',
+      d.propertyId,
+      '"' + (d.propertyAddress || '').replace(/"/g, '""') + '"',
+      d.status,
+      d.sentAt ? (d.sentAt.toDate ? d.sentAt.toDate().toISOString() : d.sentAt) : '',
+      d.deliveredAt ? (d.deliveredAt.toDate ? d.deliveredAt.toDate().toISOString() : d.deliveredAt) : '',
+      d.openedAt ? (d.openedAt.toDate ? d.openedAt.toDate().toISOString() : d.openedAt) : '',
+      '"' + (d.bounceReason || '').replace(/"/g, '""') + '"',
+      d.postalTrackingRef || '',
+    ].join(',') + '\n';
+  });
+
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'delivery-report-' + (currentBatchId || 'export') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function newBatch() {
+  if (unsubscribeDashboard) { unsubscribeDashboard(); unsubscribeDashboard = null; }
+  currentBatchId = null;
+  parsedTenants = [];
+  pdfFile = null;
+  document.getElementById('dz-spreadsheet').classList.remove('has-file');
+  document.getElementById('dz-pdf').classList.remove('has-file');
+  document.getElementById('dz-spreadsheet-name').textContent = '';
+  document.getElementById('dz-pdf-name').textContent = '';
+  document.getElementById('btn-process').disabled = true;
+  showView('view-upload');
+}
+</script>
+</body>
+</html>

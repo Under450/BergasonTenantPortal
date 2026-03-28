@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "site": "bergason-tenant-portal",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
