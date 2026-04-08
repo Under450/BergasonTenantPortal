@@ -342,12 +342,13 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
         </div>
       </div>
       <div id="ss-pdf-dropzone" class="dropzone" style="padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="document.getElementById('ss-pdf-file').click()">
-        <input type="file" id="ss-pdf-file" accept=".pdf" style="display:none" onchange="handleSingleSendPdf(event)"/>
+        <input type="file" id="ss-pdf-file" accept=".pdf" multiple style="display:none" onchange="handleSingleSendPdf(event)"/>
         <div style="display:flex;align-items:center;gap:0.75rem;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span id="ss-pdf-info" style="font-size:0.82rem;color:var(--text-mid);">No PDF attached — drag or click to add</span>
+          <span id="ss-pdf-info" style="font-size:0.82rem;color:var(--text-mid);">No PDFs attached — drag or click to add multiple</span>
         </div>
       </div>
+      <div id="ss-pdf-list" style="margin-bottom:1rem;display:none;"></div>
       <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
         <button class="btn btn-outline" onclick="closeSingleSend()">Cancel</button>
         <button class="btn btn-navy" id="btn-single-send" onclick="submitSingleSend()">
@@ -1013,7 +1014,7 @@ function downloadCert(deliveryId) {
 /* ═══════════════════════════════════
    SINGLE SEND MODAL
 ═══════════════════════════════════ */
-var singleSendPdfFile = null;
+var singleSendPdfFiles = [];
 
 function openSingleSend() {
   clearError('single-send-error');
@@ -1023,10 +1024,11 @@ function openSingleSend() {
   document.getElementById('ss-address').value = '';
   document.getElementById('ss-propid').value = '';
   document.getElementById('ss-propaddr').value = '';
-  singleSendPdfFile = null;
-  document.getElementById('ss-pdf-info').textContent = 'No PDF attached — drag or click to add';
-  document.getElementById('ss-pdf-info').style.cursor = 'pointer';
+  singleSendPdfFiles = [];
+  document.getElementById('ss-pdf-info').textContent = 'No PDFs attached — drag or click to add multiple';
   document.getElementById('ss-pdf-dropzone').classList.remove('has-file');
+  document.getElementById('ss-pdf-list').style.display = 'none';
+  document.getElementById('ss-pdf-list').innerHTML = '';
 
   var modal = document.getElementById('modal-single-send');
   modal.style.display = 'flex';
@@ -1041,15 +1043,61 @@ document.getElementById('modal-single-send').addEventListener('click', function(
   if (e.target === this) closeSingleSend();
 });
 
+function addSingleSendFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type === 'application/pdf') {
+      singleSendPdfFiles.push(files[i]);
+    }
+  }
+  renderSingleSendFileList();
+}
+
+function removeSingleSendFile(idx) {
+  singleSendPdfFiles.splice(idx, 1);
+  renderSingleSendFileList();
+}
+
+function renderSingleSendFileList() {
+  var listEl = document.getElementById('ss-pdf-list');
+  var infoEl = document.getElementById('ss-pdf-info');
+  var dzEl = document.getElementById('ss-pdf-dropzone');
+
+  if (singleSendPdfFiles.length === 0) {
+    infoEl.textContent = 'No PDFs attached — drag or click to add multiple';
+    dzEl.classList.remove('has-file');
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  var totalSize = 0;
+  for (var i = 0; i < singleSendPdfFiles.length; i++) totalSize += singleSendPdfFiles[i].size;
+  infoEl.textContent = singleSendPdfFiles.length + ' PDF' + (singleSendPdfFiles.length > 1 ? 's' : '') + ' attached (' + formatBytes(totalSize) + ' total) — click to add more';
+  dzEl.classList.add('has-file');
+
+  var html = '';
+  for (var j = 0; j < singleSendPdfFiles.length; j++) {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;border:1px solid var(--border);border-radius:5px;margin-bottom:4px;font-size:0.78rem;">';
+    html += '<div style="display:flex;align-items:center;gap:0.5rem;">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    html += '<span style="color:var(--text-mid);">' + singleSendPdfFiles[j].name + '</span>';
+    html += '<span style="color:var(--text-light);font-size:0.7rem;">(' + formatBytes(singleSendPdfFiles[j].size) + ')</span>';
+    html += '</div>';
+    html += '<button onclick="removeSingleSendFile(' + j + ')" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:1rem;padding:0 4px;line-height:1;" title="Remove">&times;</button>';
+    html += '</div>';
+  }
+  listEl.innerHTML = html;
+  listEl.style.display = 'block';
+}
+
 function handleSingleSendPdf(e) {
   if (e.target.files.length > 0) {
-    singleSendPdfFile = e.target.files[0];
-    document.getElementById('ss-pdf-info').textContent = singleSendPdfFile.name + ' — ' + formatBytes(singleSendPdfFile.size);
-    document.getElementById('ss-pdf-dropzone').classList.add('has-file');
+    addSingleSendFiles(e.target.files);
+    e.target.value = '';
   }
 }
 
-// Drag and drop for single send PDF
+// Drag and drop for single send PDFs
 (function() {
   var dz = document.getElementById('ss-pdf-dropzone');
   if (!dz) return;
@@ -1059,9 +1107,7 @@ function handleSingleSendPdf(e) {
     e.preventDefault();
     dz.classList.remove('dragover');
     if (e.dataTransfer.files.length > 0) {
-      singleSendPdfFile = e.dataTransfer.files[0];
-      document.getElementById('ss-pdf-info').textContent = singleSendPdfFile.name + ' — ' + formatBytes(singleSendPdfFile.size);
-      dz.classList.add('has-file');
+      addSingleSendFiles(e.dataTransfer.files);
     }
   });
 })();
@@ -1080,39 +1126,51 @@ async function submitSingleSend() {
     showError('single-send-error', 'Name, email, and postal address are required.');
     return;
   }
-  if (!singleSendPdfFile) {
-    showError('single-send-error', 'Please attach a PDF document.');
+  if (singleSendPdfFiles.length === 0) {
+    showError('single-send-error', 'Please attach at least one PDF document.');
     return;
   }
 
   setLoading('btn-single-send', true);
 
   try {
-    // 1. Compute SHA-256 hash
-    var pdfArrayBuffer = await singleSendPdfFile.arrayBuffer();
+    // 1. Compute SHA-256 hash of first file (for batch record)
+    var pdfArrayBuffer = await singleSendPdfFiles[0].arrayBuffer();
     var hashBuffer = await crypto.subtle.digest('SHA-256', pdfArrayBuffer);
     var hashArray = Array.from(new Uint8Array(hashBuffer));
     var pdfHash = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+
+    // Build document names list
+    var docNames = singleSendPdfFiles.map(function(f) { return f.name; });
+    var totalSize = 0;
+    for (var si = 0; si < singleSendPdfFiles.length; si++) totalSize += singleSendPdfFiles[si].size;
 
     // 2. Create a single-send batch
     var batchRef = await db.collection('tenant_batches').add({
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: adminUser.uid,
-      documentName: singleSendPdfFile.name,
+      documentName: docNames.join(', '),
+      documentNames: docNames,
+      documentCount: singleSendPdfFiles.length,
       documentHash: pdfHash,
       documentPages: 4,
-      documentSize: singleSendPdfFile.size,
+      documentSize: totalSize,
       documentStoragePath: '',
       totalRecipients: 1,
       status: 'processing',
       singleSend: true,
     });
 
-    // 3. Upload PDF to Storage
-    var storagePath = 'tenant_portal/' + batchRef.id + '/document.pdf';
-    var storageRefPath = storage.ref(storagePath);
-    await storageRefPath.put(singleSendPdfFile);
-    await batchRef.update({ documentStoragePath: storagePath });
+    // 3. Upload all PDFs to Storage
+    var storagePaths = [];
+    for (var ui = 0; ui < singleSendPdfFiles.length; ui++) {
+      var fileName = singleSendPdfFiles.length === 1 ? 'document.pdf' : 'document-' + (ui + 1) + '.pdf';
+      var storagePath = 'tenant_portal/' + batchRef.id + '/' + fileName;
+      var storageRefPath = storage.ref(storagePath);
+      await storageRefPath.put(singleSendPdfFiles[ui]);
+      storagePaths.push(storagePath);
+    }
+    await batchRef.update({ documentStoragePath: storagePaths[0], documentStoragePaths: storagePaths });
 
     // 4. Generate delivery ref
     var year = new Date().getFullYear();
