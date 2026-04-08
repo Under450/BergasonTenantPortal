@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Tenant Rights Act Portal — Bergason Estate Agents</title>
+<title>Tenant Rights Act Portal — Bergason Property Services</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -172,7 +172,7 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
 <div id="view-auth" class="view active">
   <div class="auth-panel">
     <h2 class="auth-title">Tenant Rights Act Portal</h2>
-    <p class="auth-sub">Bergason Estate Agents — admin access only</p>
+    <p class="auth-sub">Bergason Property Services — admin access only</p>
     <div class="auth-divider"></div>
     <div id="auth-error" class="alert alert-error"></div>
     <div class="form-group">
@@ -184,142 +184,125 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
       <input class="form-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password"/>
     </div>
     <button class="btn btn-navy btn-block" id="auth-login-btn" onclick="handleLogin()">Sign In</button>
+    <div style="text-align:center;margin-top:1rem;">
+      <button id="forgot-pw-btn" onclick="handleForgotPassword()" style="background:none;border:none;color:var(--text-light);font-size:0.82rem;cursor:pointer;text-decoration:underline;padding:0.25rem;">Forgot password?</button>
+    </div>
+    <div id="reset-success" class="alert" style="display:none;margin-top:0.75rem;padding:0.75rem;border-radius:6px;font-size:0.82rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"></div>
   </div>
 </div>
 
-<!-- ═══════════ VIEW: UPLOAD ═══════════ -->
-<div id="view-upload" class="view">
-  <header class="site-header">
-    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
+<!-- ═══════════ MAIN APP (shown after login) ═══════════ -->
+<div id="view-main" class="view">
+  <!-- Fixed Nav Bar -->
+  <header class="site-header" style="position:sticky;top:0;z-index:100;">
+    <div><h1>Bergason Property Services</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
     <div class="header-right">
       <span class="header-email" id="header-email"></span>
       <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
     </div>
   </header>
-  <div class="content">
-    <h2 style="color:var(--navy);margin-bottom:0.5rem;">Upload Documents</h2>
-    <p style="color:var(--text-mid);font-size:0.88rem;margin-bottom:1.5rem;">Upload the tenant spreadsheet and the PDF document to send.</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
-      <div class="dropzone" id="dz-spreadsheet" onclick="document.getElementById('file-spreadsheet').click()">
-        <input type="file" id="file-spreadsheet" accept=".xlsx,.xls" style="display:none" onchange="handleSpreadsheet(event)"/>
-        <div class="dropzone-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+  <div class="content">
+
+    <!-- ─── DASHBOARD (always visible at top) ─── -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <h2 style="color:var(--navy);font-size:1.1rem;">Delivery Dashboard</h2>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-outline" style="font-size:0.75rem;padding:0.4rem 0.75rem;" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-outline" style="font-size:0.75rem;padding:0.4rem 0.75rem;" onclick="sendNextBatch()">Send Next Batch</button>
+          <button class="btn btn-navy" style="font-size:0.75rem;padding:0.4rem 0.75rem;" onclick="openSingleSend()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Send Single Email
+          </button>
         </div>
-        <div class="dropzone-title">Tenant Spreadsheet</div>
-        <div class="dropzone-sub">Drag & drop .xlsx or click to browse</div>
-        <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">Columns: Name, Email, Postal Address, Property ID, Property Address</div>
-        <div class="dropzone-filename" id="dz-spreadsheet-name"></div>
       </div>
 
-      <div class="dropzone" id="dz-pdf" onclick="document.getElementById('file-pdf').click()">
-        <input type="file" id="file-pdf" accept=".pdf" style="display:none" onchange="handlePdf(event)"/>
-        <div class="dropzone-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1a2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="stats-bar" id="stats-bar"></div>
+
+      <div style="display:flex;gap:10px;margin-bottom:0.75rem;flex-wrap:wrap;">
+        <input class="form-input" id="dash-search" placeholder="Search by name or property ID..." style="flex:1;min-width:200px;padding:0.5rem 0.75rem;font-size:0.82rem;" oninput="filterDashboard()"/>
+        <select class="form-input" id="dash-filter" style="width:auto;min-width:130px;padding:0.5rem 0.75rem;font-size:0.82rem;" onchange="filterDashboard()">
+          <option value="">All Statuses</option>
+          <option value="queued">Queued</option>
+          <option value="sent">Sent</option>
+          <option value="delivered">Delivered</option>
+          <option value="opened">Opened</option>
+          <option value="bounced">Bounced</option>
+          <option value="posted">Posted</option>
+        </select>
+      </div>
+
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;">
+        <table class="dash-table" id="dash-table">
+          <thead>
+            <tr>
+              <th>Ref</th>
+              <th>Tenant</th>
+              <th>Property</th>
+              <th style="text-align:center;">Status</th>
+              <th style="text-align:center;">Sent</th>
+              <th style="text-align:center;">Delivered</th>
+              <th style="text-align:center;">Opened</th>
+              <th style="text-align:center;">Posted</th>
+              <th style="text-align:center;">Cert</th>
+              <th style="text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── UPLOAD (always visible below dashboard) ─── -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <h2 style="color:var(--navy);font-size:1.1rem;margin-bottom:1rem;">Upload Documents</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1rem;">
+        <div class="dropzone" id="dz-spreadsheet" onclick="document.getElementById('file-spreadsheet').click()">
+          <input type="file" id="file-spreadsheet" accept=".xlsx,.xls" style="display:none" onchange="handleSpreadsheet(event)"/>
+          <div class="dropzone-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="dropzone-title">Tenant Spreadsheet</div>
+          <div class="dropzone-sub">Drag & drop .xlsx or click to browse</div>
+          <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">Columns: Name, Email, Postal Address, Property ID, Property Address</div>
+          <div class="dropzone-filename" id="dz-spreadsheet-name"></div>
         </div>
-        <div class="dropzone-title">PDF Document</div>
-        <div class="dropzone-sub">Drag & drop the PDF to send</div>
-        <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">This PDF will be attached to every email</div>
-        <div class="dropzone-filename" id="dz-pdf-name"></div>
+
+        <div class="dropzone" id="dz-pdf" onclick="document.getElementById('file-pdf').click()">
+          <input type="file" id="file-pdf" accept=".pdf" style="display:none" onchange="handlePdf(event)"/>
+          <div class="dropzone-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1a2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="dropzone-title">PDF Document</div>
+          <div class="dropzone-sub">Drag & drop the PDF to send</div>
+          <div class="dropzone-sub" style="margin-top:4px;font-size:0.72rem;">This PDF will be attached to every email</div>
+          <div class="dropzone-filename" id="dz-pdf-name"></div>
+        </div>
+      </div>
+
+      <div id="upload-errors" class="alert alert-error"></div>
+
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-gold btn-lg" id="btn-process" onclick="processUpload()" disabled>Process Upload</button>
       </div>
     </div>
 
-    <div id="upload-errors" class="alert alert-error"></div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn-outline" id="btn-view-dashboard" onclick="showView('view-dashboard');loadDashboard();" style="font-size:0.82rem;">View Previous Batches</button>
-        <button class="btn btn-navy" style="font-size:0.82rem;" onclick="openSingleSend()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Send Single Email
-        </button>
-      </div>
-      <button class="btn btn-gold btn-lg" id="btn-process" onclick="processUpload()" disabled>Process Upload</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ VIEW: REVIEW ═══════════ -->
-<div id="view-review" class="view">
-  <header class="site-header">
-    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
-    <div class="header-right">
-      <span class="header-email" id="header-email-review"></span>
-      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
-    </div>
-  </header>
-  <div class="content">
-    <h2 style="color:var(--navy);margin-bottom:0.5rem;">Review Tenants</h2>
-    <div id="review-info" class="alert alert-info"></div>
-    <div id="tenant-list"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid var(--border);margin-top:0.5rem;">
-      <div style="font-size:0.82rem;color:var(--text-mid);" id="review-summary"></div>
-      <div style="display:flex;gap:0.75rem;">
-        <button class="btn btn-danger-outline" onclick="cancelReview()">Cancel</button>
-        <button class="btn btn-navy btn-lg" id="btn-send-all" onclick="sendAll()">Send All</button>
+    <!-- ─── REVIEW (shown after processing, always visible below upload) ─── -->
+    <div class="card" id="sec-review" style="display:none;">
+      <h2 style="color:var(--navy);font-size:1.1rem;margin-bottom:1rem;">Review Tenants</h2>
+      <div id="review-info" class="alert alert-info"></div>
+      <div id="tenant-list"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid var(--border);margin-top:0.5rem;">
+        <div style="font-size:0.82rem;color:var(--text-mid);" id="review-summary"></div>
+        <div style="display:flex;gap:0.75rem;">
+          <button class="btn btn-danger-outline" onclick="cancelReview()">Cancel</button>
+          <button class="btn btn-navy btn-lg" id="btn-send-all" onclick="sendAll()">Send All</button>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ═══════════ VIEW: DASHBOARD ═══════════ -->
-<div id="view-dashboard" class="view">
-  <header class="site-header">
-    <div><h1>Bergason Estate Agents</h1><div class="subtitle">Tenant Rights Act Portal</div></div>
-    <div class="header-right">
-      <span class="header-email" id="header-email-dash"></span>
-      <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
-    </div>
-  </header>
-  <div class="content">
-    <div class="stats-bar" id="stats-bar"></div>
-
-    <div style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
-      <input class="form-input" id="dash-search" placeholder="Search by name or property ID..." style="flex:1;min-width:200px;" oninput="filterDashboard()"/>
-      <select class="form-input" id="dash-filter" style="width:auto;min-width:140px;" onchange="filterDashboard()">
-        <option value="">All Statuses</option>
-        <option value="queued">Queued</option>
-        <option value="sent">Sent</option>
-        <option value="delivered">Delivered</option>
-        <option value="opened">Opened</option>
-        <option value="bounced">Bounced</option>
-        <option value="posted">Posted</option>
-      </select>
-    </div>
-
-    <div style="overflow-x:auto;">
-      <table class="dash-table" id="dash-table">
-        <thead>
-          <tr>
-            <th>Ref</th>
-            <th>Tenant</th>
-            <th>Property</th>
-            <th style="text-align:center;">Status</th>
-            <th>Sent</th>
-            <th>Delivered</th>
-            <th>Opened</th>
-            <th style="text-align:center;">Postal</th>
-            <th style="text-align:center;">Cert</th>
-            <th style="text-align:center;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="dash-tbody"></tbody>
-      </table>
-    </div>
-
-    <div class="actions-bar">
-      <div class="actions-left">
-        <button class="btn btn-outline" style="font-size:0.8rem;" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-outline" style="font-size:0.8rem;" onclick="sendNextBatch()">Send Next Batch</button>
-      </div>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn-navy" style="font-size:0.8rem;" onclick="openSingleSend()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          Send Single Email
-        </button>
-        <button class="btn btn-gold" onclick="newBatch()">New Batch</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -411,6 +394,10 @@ function showView(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function showReview(show) {
+  document.getElementById('sec-review').style.display = show ? 'block' : 'none';
+}
+
 function showLoading(text) {
   document.getElementById('loading-text').textContent = text || 'Please wait...';
   document.getElementById('loading-overlay').classList.add('show');
@@ -492,6 +479,36 @@ function handleLogin() {
     });
 }
 
+function handleForgotPassword() {
+  clearError('auth-error');
+  var email = document.getElementById('auth-email').value.trim();
+  if (!email) {
+    showError('auth-error', 'Enter your email address above, then click Forgot password.');
+    return;
+  }
+  var btn = document.getElementById('forgot-pw-btn');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(function() {
+      var el = document.getElementById('reset-success');
+      el.textContent = 'Password reset email sent to ' + email + '. Check your inbox.';
+      el.style.display = 'block';
+      btn.textContent = 'Email sent';
+      setTimeout(function() { btn.textContent = 'Forgot password?'; btn.disabled = false; }, 5000);
+    })
+    .catch(function(err) {
+      btn.textContent = 'Forgot password?';
+      btn.disabled = false;
+      var msgs = {
+        'auth/user-not-found': 'No account found with that email.',
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/too-many-requests': 'Too many attempts. Try again later.'
+      };
+      showError('auth-error', msgs[err.code] || 'Could not send reset email: ' + err.message);
+    });
+}
+
 function checkAdmin(user) {
   return db.collection('tenant_portal_admins').doc(user.uid).get()
     .then(function(doc) {
@@ -504,9 +521,8 @@ function checkAdmin(user) {
       adminUser = user;
       setLoading('auth-login-btn', false);
       document.getElementById('header-email').textContent = user.email;
-      document.getElementById('header-email-review').textContent = user.email;
-      document.getElementById('header-email-dash').textContent = user.email;
-      showView('view-upload');
+      showView('view-main');
+      loadDashboard();
     })
     .catch(function(err) {
       setLoading('auth-login-btn', false);
@@ -666,8 +682,7 @@ function processUpload() {
   document.getElementById('review-summary').innerHTML = '<strong>' + parsedTenants.length + '</strong> tenants &middot; <strong>' + escapeHtml(pdfFileName) + '</strong> (' + formatBytes(pdfFileSize) + ')';
   document.getElementById('btn-send-all').textContent = 'Send All ' + parsedTenants.length;
 
-  document.getElementById('header-email-review').textContent = adminUser.email;
-  showView('view-review');
+  showReview(true);
 }
 
 function renderTenantCards() {
@@ -712,7 +727,7 @@ function cancelReview() {
   document.getElementById('dz-spreadsheet-name').textContent = '';
   document.getElementById('dz-pdf-name').textContent = '';
   document.getElementById('btn-process').disabled = true;
-  showView('view-upload');
+  showReview(false);
 }
 
 /* ═══════════════════════════════════
@@ -784,9 +799,10 @@ async function sendAll() {
     hideLoading();
     showToast(result.data.sent + ' emails sent. ' + (result.data.errors > 0 ? result.data.errors + ' failed.' : ''), result.data.errors > 0 ? 'error' : 'success');
 
-    // Show dashboard
+    // Refresh dashboard and hide review
     loadDashboard();
-    showView('view-dashboard');
+    showReview(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
   } catch (err) {
     hideLoading();
@@ -799,33 +815,10 @@ async function sendAll() {
    DASHBOARD
 ═══════════════════════════════════ */
 function loadDashboard() {
-  document.getElementById('header-email-dash').textContent = adminUser ? adminUser.email : '';
-
   if (unsubscribeDashboard) { unsubscribeDashboard(); }
 
-  // If we have a currentBatchId, listen to that batch
-  // Otherwise, get the latest batch
-  if (!currentBatchId) {
-    db.collection('tenant_batches')
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get()
-      .then(function(snap) {
-        if (!snap.empty) {
-          currentBatchId = snap.docs[0].id;
-          subscribeToDashboard();
-        } else {
-          document.getElementById('dash-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-light);">No batches yet. Upload a spreadsheet to get started.</td></tr>';
-        }
-      });
-  } else {
-    subscribeToDashboard();
-  }
-}
-
-function subscribeToDashboard() {
+  // Show ALL deliveries across all batches
   unsubscribeDashboard = db.collection('tenant_deliveries')
-    .where('batchId', '==', currentBatchId)
     .onSnapshot(function(snap) {
       allDeliveries = [];
       snap.forEach(function(doc) {
@@ -833,9 +826,12 @@ function subscribeToDashboard() {
         d.id = doc.id;
         allDeliveries.push(d);
       });
-      // Sort by delivery ref
-      allDeliveries.sort(function(a, b) { return a.deliveryRef.localeCompare(b.deliveryRef); });
+      // Sort by delivery ref descending (newest first)
+      allDeliveries.sort(function(a, b) { return b.deliveryRef.localeCompare(a.deliveryRef); });
       renderDashboard();
+    }, function(err) {
+      console.error('Dashboard error:', err);
+      document.getElementById('dash-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-light);">Failed to load deliveries.</td></tr>';
     });
 }
 
@@ -848,7 +844,8 @@ function renderDashboard() {
     '<div class="stat-box" style="background:#f0faf5;"><div class="stat-num" style="color:#38a169;">' + counts.delivered + '</div><div class="stat-label">Delivered</div></div>'
     + '<div class="stat-box" style="background:#ebf8ff;"><div class="stat-num" style="color:#3182ce;">' + counts.opened + '</div><div class="stat-label">Opened</div></div>'
     + '<div class="stat-box" style="background:#faf8f3;"><div class="stat-num" style="color:#c9a84c;">' + (counts.queued + counts.sent) + '</div><div class="stat-label">Queued/Sent</div></div>'
-    + '<div class="stat-box" style="background:#fff5f5;"><div class="stat-num" style="color:#e53e3e;">' + (counts.bounced + counts.posted) + '</div><div class="stat-label">Bounced/Posted</div></div>';
+    + '<div class="stat-box" style="background:#fff5f5;"><div class="stat-num" style="color:#e53e3e;">' + counts.bounced + '</div><div class="stat-label">Bounced</div></div>'
+    + '<div class="stat-box" style="background:#e9d5ff;"><div class="stat-num" style="color:#7c3aed;">' + counts.posted + '</div><div class="stat-label">Posted</div></div>';
 
   filterDashboard();
 }
@@ -870,12 +867,12 @@ function filterDashboard() {
       + '<td>' + escapeHtml(d.tenantName) + '</td>'
       + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyId) + '</td>'
       + '<td style="text-align:center;"><span class="badge badge-' + d.status + '">' + d.status.charAt(0).toUpperCase() + d.status.slice(1) + '</span></td>'
-      + '<td>' + formatDateTime(d.sentAt) + '</td>'
-      + '<td>' + formatDateTime(d.deliveredAt) + '</td>'
-      + '<td>' + formatDateTime(d.openedAt) + '</td>'
-      + '<td style="text-align:center;">' + postalCell(d) + '</td>'
-      + '<td style="text-align:center;">' + (d.status !== 'queued' ? '<a href="#" onclick="downloadCert(\'' + d.id + '\');return false;" style="color:#3182ce;font-weight:600;text-decoration:underline;">PDF</a>' : '\u2014') + '</td>'
-      + '<td style="text-align:center;">' + (d.status === 'queued' ? '<a href="#" onclick="sendSingle(\'' + d.id + '\');return false;" style="color:var(--gold);font-weight:600;font-size:0.75rem;text-decoration:underline;">Send</a>' : '') + '</td>'
+      + '<td style="text-align:center;" title="' + (d.sentAt ? formatDateTime(d.sentAt) : '') + '">' + tickOrCross(d.sentAt) + '</td>'
+      + '<td style="text-align:center;" title="' + (d.deliveredAt ? formatDateTime(d.deliveredAt) : '') + '">' + tickOrCross(d.deliveredAt, d.status === 'bounced') + '</td>'
+      + '<td style="text-align:center;" title="' + (d.openedAt ? formatDateTime(d.openedAt) : '') + '">' + tickOrCross(d.openedAt) + '</td>'
+      + '<td style="text-align:center;">' + postedCell(d) + '</td>'
+      + '<td style="text-align:center;">' + certCell(d) + '</td>'
+      + '<td style="text-align:center;">' + actionCell(d) + '</td>'
       + '</tr>';
   });
 
@@ -892,6 +889,42 @@ function filterDashboard() {
 /* ═══════════════════════════════════
    POSTAL PROOF UPLOAD
 ═══════════════════════════════════ */
+function tickOrCross(value, forceX) {
+  if (forceX) return '<span style="color:#ff0000;font-size:1.1rem;font-weight:700;">&#10007;</span>';
+  if (value) return '<span style="color:#00cc44;font-size:1.1rem;font-weight:700;">&#10003;</span>';
+  return '<span style="color:#ccc;font-size:0.85rem;">&#8212;</span>';
+}
+
+function postedCell(d) {
+  if (d.postalProofPath) {
+    return '<a href="#" onclick="viewPostalProof(\'' + d.id + '\');return false;" style="color:#38a169;font-weight:600;font-size:0.75rem;text-decoration:underline;">View Proof</a>';
+  }
+  if (d.status === 'bounced') {
+    return '<label style="cursor:pointer;color:#c9a84c;font-weight:600;font-size:0.72rem;text-decoration:underline;">'
+      + 'Upload Proof'
+      + '<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadPostalProof(\'' + d.id + '\', this.files[0])"/>'
+      + '</label>';
+  }
+  if (d.status === 'posted') {
+    return '<span style="color:#38a169;font-size:1rem;font-weight:700;">&#10003;</span>';
+  }
+  return '<span style="color:#ccc;font-size:0.85rem;">&#8212;</span>';
+}
+
+function certCell(d) {
+  if (d.status === 'queued') return '<span style="color:#ccc;font-size:0.85rem;">&#8212;</span>';
+  return '<a href="#" onclick="downloadCert(\'' + d.id + '\');return false;" style="color:#3182ce;font-weight:600;text-decoration:underline;font-size:0.75rem;">PDF</a>';
+}
+
+function actionCell(d) {
+  var html = '';
+  if (d.status === 'queued') {
+    html += '<a href="#" onclick="sendSingle(\'' + d.id + '\');return false;" style="color:var(--gold);font-weight:600;font-size:0.75rem;text-decoration:underline;margin-right:6px;" title="Send this email now">Send</a>';
+  }
+  html += '<a href="#" onclick="deleteDelivery(\'' + d.id + '\');return false;" style="color:#ff0000;font-weight:700;font-size:0.85rem;" title="Delete this record">&times;</a>';
+  return html;
+}
+
 function postalCell(d) {
   if (d.postalProofPath) {
     return '<a href="#" onclick="viewPostalProof(\'' + d.id + '\');return false;" style="color:#38a169;font-weight:600;font-size:0.75rem;text-decoration:underline;">View Proof</a>';
@@ -1121,18 +1154,11 @@ async function submitSingleSend() {
     setLoading('btn-single-send', false);
 
     if (result.data.sent > 0) {
-      var successEl = document.getElementById('single-send-success');
-      successEl.textContent = 'Email sent to ' + name + ' (' + email + ') — Ref: ' + deliveryRef;
-      successEl.classList.add('show');
-      // Clear form for another send
-      document.getElementById('ss-name').value = '';
-      document.getElementById('ss-email').value = '';
-      document.getElementById('ss-address').value = '';
-      document.getElementById('ss-propid').value = '';
-      document.getElementById('ss-propaddr').value = '';
+      // Auto-close modal and show toast
+      closeSingleSend();
+      showToast('Email sent to ' + name + ' (' + email + ') — Ref: ' + deliveryRef, 'success');
 
-      // Update dashboard if viewing this batch
-      currentBatchId = batchRef.id;
+      // Refresh dashboard to show all deliveries
       loadDashboard();
     } else {
       showError('single-send-error', 'Email created but send failed. Check dashboard.');
@@ -1142,6 +1168,20 @@ async function submitSingleSend() {
     setLoading('btn-single-send', false);
     showError('single-send-error', 'Failed: ' + err.message);
   }
+}
+
+function deleteDelivery(deliveryId) {
+  if (!confirm('Are you sure you want to delete this delivery record?')) return;
+  showLoading('Deleting...');
+  db.collection('tenant_deliveries').doc(deliveryId).delete()
+    .then(function() {
+      hideLoading();
+      showToast('Delivery record deleted.', 'success');
+    })
+    .catch(function(err) {
+      hideLoading();
+      showToast('Delete failed: ' + err.message, 'error');
+    });
 }
 
 function sendSingle(deliveryId) {
@@ -1218,7 +1258,7 @@ function newBatch() {
   document.getElementById('dz-spreadsheet-name').textContent = '';
   document.getElementById('dz-pdf-name').textContent = '';
   document.getElementById('btn-process').disabled = true;
-  showView('view-upload');
+  showReview(false);
 }
 </script>
 </body>
