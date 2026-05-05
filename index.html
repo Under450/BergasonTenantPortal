@@ -645,16 +645,42 @@ function handleSpreadsheetFile(file) {
         return;
       }
 
-      // Flexible column matching
+      // Normalise header: lowercase, strip spaces/punctuation
+      function normHeader(h) { return String(h).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+      // Flexible column matching — tolerates varied spreadsheet headers
       parsedTenants = rows.map(function(row) {
         var mapped = {};
         Object.keys(row).forEach(function(key) {
-          var k = key.toLowerCase().trim();
-          if (k === 'tenant name' || k === 'name' || k === 'full name' || k === 'tenant') mapped.tenantName = String(row[key]).trim();
-          else if (k === 'email' || k === 'email address' || k === 'e-mail') mapped.email = String(row[key]).trim().toLowerCase();
-          else if (k === 'postal address' || k === 'address' || k === 'home address' || k === 'tenant address') mapped.postalAddress = String(row[key]).trim();
-          else if (k === 'property id' || k === 'property ref' || k === 'property reference' || k === 'propertyid') mapped.propertyId = String(row[key]).trim();
-          else if (k === 'property address' || k === 'property') mapped.propertyAddress = String(row[key]).trim();
+          var n = normHeader(key);
+          var val = String(row[key]).trim();
+          if (!val) return;
+
+          // Tenant name
+          if (n === 'tenantname' || n === 'name' || n === 'fullname' || n === 'tenant' || n === 'occupant' || n === 'resident') {
+            mapped.tenantName = val;
+          }
+          // Email
+          else if (n === 'email' || n === 'emailaddress' || n === 'tenantemail') {
+            mapped.email = val.toLowerCase();
+          }
+          // Postal address
+          else if (n === 'postaladdress' || n === 'homeaddress' || n === 'tenantaddress' || n === 'mailingaddress' || n === 'correspondenceaddress') {
+            mapped.postalAddress = val;
+          }
+          // Property ID
+          else if (n === 'propertyid' || n === 'propertyref' || n === 'propertyreference' || n === 'propid' || n === 'ref' || n === 'reference') {
+            mapped.propertyId = val;
+          }
+          // Property address
+          else if (n === 'propertyaddress' || n === 'property' || n === 'propertylocation' || n === 'unit') {
+            mapped.propertyAddress = val;
+          }
+          // Single "Address" column — mirror to both postal and property if neither set yet
+          else if (n === 'address') {
+            if (!mapped.postalAddress) mapped.postalAddress = val;
+            if (!mapped.propertyAddress) mapped.propertyAddress = val;
+          }
         });
         return mapped;
       });
