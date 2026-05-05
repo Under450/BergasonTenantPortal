@@ -282,6 +282,23 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
         </div>
       </div>
 
+      <!-- Email Template -->
+      <div style="margin-bottom:1rem;padding:1rem 1.25rem;background:#f9f8f5;border:1px solid #e8e4dc;border-radius:var(--radius);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+          <h3 style="font-size:0.8rem;color:var(--navy);margin:0;font-family:'EB Garamond',Georgia,serif;">Email Template</h3>
+          <button class="btn btn-outline" style="font-size:0.65rem;padding:0.25rem 0.6rem;" onclick="loadDefaultTemplate()">Load Default</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label class="form-label" for="email-subject">Subject Line</label>
+          <input class="form-input" type="text" id="email-subject" placeholder="e.g. Important: Tenant Rights Act Notice — {{propertyAddress}}" style="font-size:0.82rem;"/>
+          <div style="font-size:0.65rem;color:var(--text-mid);margin-top:3px;">Merge tags: <code>{{tenantName}}</code> <code>{{propertyAddress}}</code> <code>{{propertyId}}</code> <code>{{postalAddress}}</code> <code>{{deliveryRef}}</code></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" for="email-body">Email Body</label>
+          <textarea class="form-input" id="email-body" rows="6" placeholder="Dear {{tenantName}},&#10;&#10;Please find attached..." style="font-size:0.82rem;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+      </div>
+
       <div id="upload-errors" class="alert alert-error"></div>
 
       <div style="display:flex;justify-content:flex-end;">
@@ -341,6 +358,20 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
           <input class="form-input" type="text" id="ss-propaddr" placeholder="e.g. Oak Lane House"/>
         </div>
       </div>
+      <!-- Email Template (Single Send) -->
+      <div style="margin-bottom:1rem;padding:0.75rem 1rem;background:#f9f8f5;border:1px solid #e8e4dc;border-radius:var(--radius);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <label class="form-label" style="margin:0;font-size:0.72rem;">Email Template</label>
+          <button class="btn btn-outline" style="font-size:0.6rem;padding:0.2rem 0.5rem;" onclick="loadDefaultTemplateSS()">Load Default</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0.5rem;">
+          <input class="form-input" type="text" id="ss-email-subject" placeholder="Subject (leave blank for default)" style="font-size:0.8rem;"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <textarea class="form-input" id="ss-email-body" rows="4" placeholder="Body (leave blank for default)" style="font-size:0.8rem;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+        <div style="font-size:0.6rem;color:var(--text-mid);margin-top:3px;">Tags: <code>{{tenantName}}</code> <code>{{propertyAddress}}</code> <code>{{deliveryRef}}</code></div>
+      </div>
       <div id="ss-pdf-dropzone" class="dropzone" style="padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="document.getElementById('ss-pdf-file').click()">
         <input type="file" id="ss-pdf-file" accept=".pdf" multiple style="display:none" onchange="handleSingleSendPdf(event)"/>
         <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -385,6 +416,19 @@ var pdfFileSize = 0;
 var currentBatchId = null;
 var allDeliveries = [];
 var unsubscribeDashboard = null;
+
+var DEFAULT_EMAIL_SUBJECT = 'Important: Tenant Rights Act Notice — {{propertyAddress}}';
+var DEFAULT_EMAIL_BODY = 'Dear {{tenantName}},\n\nPlease find attached an important Tenant Rights Act notice relating to your property at {{propertyAddress}}.\n\nThis notice is being sent to you in accordance with our legal obligations as managing agent. Please read the attached document carefully and retain it for your records.\n\nDelivery Reference: {{deliveryRef}}\n\nIf you have any questions, please contact us at info@bergason.co.uk or call 01543 406028.\n\nKind regards,\nBergason Property Services\n8a Bore Street, Lichfield WS13 6LL';
+
+function loadDefaultTemplate() {
+  document.getElementById('email-subject').value = DEFAULT_EMAIL_SUBJECT;
+  document.getElementById('email-body').value = DEFAULT_EMAIL_BODY;
+}
+
+function loadDefaultTemplateSS() {
+  document.getElementById('ss-email-subject').value = DEFAULT_EMAIL_SUBJECT;
+  document.getElementById('ss-email-body').value = DEFAULT_EMAIL_BODY;
+}
 
 /* ═══════════════════════════════════
    UTILITIES
@@ -750,11 +794,13 @@ async function sendAll() {
       createdBy: adminUser.uid,
       documentName: pdfFileName,
       documentHash: pdfHash,
-      documentPages: 4, // We can't easily count PDF pages client-side without a lib; default to 4 as spec says
+      documentPages: 4,
       documentSize: pdfFileSize,
-      documentStoragePath: '', // Will update after upload
+      documentStoragePath: '',
       totalRecipients: parsedTenants.length,
       status: 'processing',
+      emailSubject: (document.getElementById('email-subject').value || '').trim(),
+      emailBody: (document.getElementById('email-body').value || '').trim(),
     });
     currentBatchId = batchRef.id;
 
@@ -1159,6 +1205,8 @@ async function submitSingleSend() {
       totalRecipients: 1,
       status: 'processing',
       singleSend: true,
+      emailSubject: (document.getElementById('ss-email-subject').value || '').trim(),
+      emailBody: (document.getElementById('ss-email-body').value || '').trim(),
     });
 
     // 3. Upload all PDFs to Storage
