@@ -730,11 +730,22 @@ function checkUploadReady() {
 /* ═══════════════════════════════════
    PROCESS → REVIEW
 ═══════════════════════════════════ */
-function processUpload() {
-  // Generate delivery refs
+async function processUpload() {
+  // Query Firestore for highest existing deliveryRef to continue numbering
   var year = new Date().getFullYear();
+  var nextNum = 1;
+  try {
+    var lastSnap = await db.collection('tenant_deliveries').orderBy('deliveryRef', 'desc').limit(1).get();
+    if (!lastSnap.empty) {
+      var lastRef = lastSnap.docs[0].data().deliveryRef;
+      var match = lastRef.match(/BGN-\d{4}-(\d+)/);
+      if (match) nextNum = parseInt(match[1], 10) + 1;
+    }
+  } catch (e) {
+    console.warn('Could not query last deliveryRef, starting from 1:', e.message);
+  }
   parsedTenants.forEach(function(t, i) {
-    t.deliveryRef = 'BGN-' + year + '-' + String(i + 1).padStart(4, '0');
+    t.deliveryRef = 'BGN-' + year + '-' + String(nextNum + i).padStart(4, '0');
   });
 
   // Show info banner
@@ -780,11 +791,7 @@ function renderTenantCards() {
 
 function removeTenant(index) {
   parsedTenants.splice(index, 1);
-  // Re-generate refs
-  var year = new Date().getFullYear();
-  parsedTenants.forEach(function(t, i) {
-    t.deliveryRef = 'BGN-' + year + '-' + String(i + 1).padStart(4, '0');
-  });
+  // Keep existing refs — don't re-number (refs are globally sequential)
   renderTenantCards();
   document.getElementById('review-summary').innerHTML = '<strong>' + parsedTenants.length + '</strong> tenants &middot; <strong>' + escapeHtml(pdfFileName) + '</strong> (' + formatBytes(pdfFileSize) + ')';
   document.getElementById('btn-send-all').textContent = 'Send All ' + parsedTenants.length;
