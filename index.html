@@ -956,21 +956,28 @@ function filterDashboard() {
     if (d.status === 'bounced') tenantHtml += ' <span style="display:inline-block;font-size:0.6rem;background:#fff0f0;color:#e53e3e;border:1px solid #fca5a5;padding:1px 6px;border-radius:10px;vertical-align:middle;">Bounced</span>';
     if (d.isResend) tenantHtml += ' <span style="display:inline-block;font-size:0.6rem;background:#fdf8ed;color:#c9a84c;border:1px solid #e8d89c;padding:1px 6px;border-radius:10px;vertical-align:middle;">Resent</span>';
 
-    // Open Activity cell
+    // Open Activity cell — priority: bounced > postIt > posted > superseded > opens > isResend > empty
     var openHtml = '';
-    if ((d.openCount || 0) > 0) {
-      openHtml = '<strong style="color:#3182ce;">' + d.openCount + ' open' + (d.openCount > 1 ? 's' : '') + '</strong>';
-      if (d.openedAt) openHtml += '<br><span style="font-size:0.65rem;color:var(--text-light);">First ' + formatDateTime(d.openedAt) + '</span>';
+    if (d.status === 'bounced') {
+      openHtml = '<span style="color:#e53e3e;font-weight:600;font-size:0.72rem;">Bounced &mdash; POST IT</span>';
+      if (d.bouncedAt) openHtml += '<br><span style="font-size:0.6rem;color:var(--text-light);">Flagged ' + formatDateTime(d.bouncedAt) + '</span>';
     } else if (d.postItFlag && !d.postedAt) {
       openHtml = '<span style="color:#e53e3e;font-weight:600;font-size:0.72rem;">POST IT</span>';
+      openHtml += '<br><span style="font-size:0.6rem;color:var(--text-light);">Flagged ' + formatDateTime(d.autoResentAt || d.deliveredAt || d.sentAt) + '</span>';
     } else if (d.postedAt) {
       openHtml = '<span style="color:#38a169;font-size:0.72rem;">Posted ' + formatDateTime(d.postedAt) + '</span>';
       if (d.postalTrackingRef) openHtml += '<br><span style="font-size:0.6rem;color:var(--text-light);">RM: ' + escapeHtml(d.postalTrackingRef) + '</span>';
+    } else if (d.supersededBy) {
+      openHtml = '<span style="font-size:0.6rem;color:#aaa;text-decoration:line-through;">Superseded by ' + escapeHtml(d.supersededBy) + '</span>';
+    } else if ((d.openCount || 0) > 0) {
+      openHtml = '<strong style="color:#3182ce;">' + d.openCount + ' open' + (d.openCount > 1 ? 's' : '') + '</strong>';
+      if (d.openedAt) openHtml += '<br><span style="font-size:0.65rem;color:var(--text-light);">First ' + formatDateTime(d.openedAt) + '</span>';
+      if (d.isResend && d.originalDeliveryRef) openHtml += '<br><span style="font-size:0.6rem;color:#aaa;">Replaces ' + escapeHtml(d.originalDeliveryRef) + '</span>';
+    } else if (d.isResend && d.originalDeliveryRef) {
+      openHtml = '<span style="font-size:0.6rem;color:#aaa;">Replaces ' + escapeHtml(d.originalDeliveryRef) + '</span>';
     } else {
       openHtml = '<span style="color:#ccc;font-size:0.85rem;">&#8212;</span>';
     }
-    if (d.supersededBy) openHtml += '<br><span style="font-size:0.6rem;color:#aaa;text-decoration:line-through;">Superseded by ' + escapeHtml(d.supersededBy) + '</span>';
-    if (d.isResend && d.originalDeliveryRef) openHtml += '<br><span style="font-size:0.6rem;color:#aaa;">Replaces ' + escapeHtml(d.originalDeliveryRef) + '</span>';
 
     html += '<tr>'
       + '<td style="font-family:monospace;font-weight:600;color:var(--navy);">' + escapeHtml(d.deliveryRef) + '</td>'
