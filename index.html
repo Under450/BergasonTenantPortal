@@ -230,6 +230,8 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
           <option value="opened">Opened</option>
           <option value="bounced">Bounced</option>
           <option value="posted">Posted</option>
+          <option value="needs_posting">Needs Posting</option>
+          <option value="resent">Resent</option>
         </select>
       </div>
 
@@ -243,7 +245,7 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
               <th style="text-align:center;">Status</th>
               <th style="text-align:center;">Sent</th>
               <th style="text-align:center;">Delivered</th>
-              <th style="text-align:center;">Opened</th>
+              <th style="text-align:center;">Open Activity</th>
               <th style="text-align:center;">Posted</th>
               <th style="text-align:center;">Cert</th>
               <th style="text-align:center;">Action</th>
@@ -916,16 +918,21 @@ function loadDashboard() {
 }
 
 function renderDashboard() {
-  // Stats
-  var counts = { delivered: 0, opened: 0, queued: 0, sent: 0, bounced: 0, posted: 0 };
-  allDeliveries.forEach(function(d) { if (counts[d.status] !== undefined) counts[d.status]++; });
+  // Stats — computed from delivery data
+  var statDelivered = 0, statOpenActivity = 0, statNoActivity = 0, statTotalOpens = 0, statPostIt = 0;
+  allDeliveries.forEach(function(d) {
+    if (d.status === 'delivered' || d.status === 'opened') statDelivered++;
+    if ((d.openCount || 0) > 0) { statOpenActivity++; statTotalOpens += (d.openCount || 0); }
+    if ((d.openCount || 0) === 0 && d.status !== 'bounced' && d.status !== 'queued') statNoActivity++;
+    if (d.postItFlag && !d.postedAt) statPostIt++;
+  });
 
   document.getElementById('stats-bar').innerHTML =
-    '<div class="stat-box" style="background:#f0faf5;"><div class="stat-num" style="color:#38a169;">' + counts.delivered + '</div><div class="stat-label">Delivered</div></div>'
-    + '<div class="stat-box" style="background:#ebf8ff;"><div class="stat-num" style="color:#3182ce;">' + counts.opened + '</div><div class="stat-label">Opened</div></div>'
-    + '<div class="stat-box" style="background:#faf8f3;"><div class="stat-num" style="color:#c9a84c;">' + (counts.queued + counts.sent) + '</div><div class="stat-label">Queued/Sent</div></div>'
-    + '<div class="stat-box" style="background:#fff5f5;"><div class="stat-num" style="color:#e53e3e;">' + counts.bounced + '</div><div class="stat-label">Bounced</div></div>'
-    + '<div class="stat-box" style="background:#e9d5ff;"><div class="stat-num" style="color:#7c3aed;">' + counts.posted + '</div><div class="stat-label">Posted</div></div>';
+    '<div class="stat-box" style="background:#f0faf5;"><div class="stat-num" style="color:#38a169;">' + statDelivered + '</div><div class="stat-label">Delivered</div></div>'
+    + '<div class="stat-box" style="background:#ebf8ff;"><div class="stat-num" style="color:#3182ce;">' + statOpenActivity + '</div><div class="stat-label">Open Activity</div></div>'
+    + '<div class="stat-box" style="background:#faf8f3;"><div class="stat-num" style="color:#c9a84c;">' + statNoActivity + '</div><div class="stat-label">No Activity</div></div>'
+    + '<div class="stat-box" style="background:#f0f4ff;"><div class="stat-num" style="color:#5b6abf;">' + statTotalOpens + '</div><div class="stat-label">Total Opens</div></div>'
+    + '<div class="stat-box" style="background:#fff5f5;"><div class="stat-num" style="color:#e53e3e;">' + statPostIt + '</div><div class="stat-label">POST IT</div></div>';
 
   filterDashboard();
 }
@@ -935,21 +942,44 @@ function filterDashboard() {
   var status = document.getElementById('dash-filter').value;
 
   var filtered = allDeliveries.filter(function(d) {
-    if (status && d.status !== status) return false;
-    if (search && d.tenantName.toLowerCase().indexOf(search) === -1 && d.propertyId.toLowerCase().indexOf(search) === -1 && d.deliveryRef.toLowerCase().indexOf(search) === -1) return false;
+    if (status === 'needs_posting') { if (!d.postItFlag || d.postedAt) return false; }
+    else if (status === 'resent') { if (!d.isResend) return false; }
+    else if (status && d.status !== status) return false;
+    if (search && d.tenantName.toLowerCase().indexOf(search) === -1 && (d.propertyId || '').toLowerCase().indexOf(search) === -1 && d.deliveryRef.toLowerCase().indexOf(search) === -1) return false;
     return true;
   });
 
   var html = '';
   filtered.forEach(function(d) {
+    // Tenant name + pills
+    var tenantHtml = escapeHtml(d.tenantName);
+    if (d.status === 'bounced') tenantHtml += ' <span style="display:inline-block;font-size:0.6rem;background:#fff0f0;color:#e53e3e;border:1px solid #fca5a5;padding:1px 6px;border-radius:10px;vertical-align:middle;">Bounced</span>';
+    if (d.isResend) tenantHtml += ' <span style="display:inline-block;font-size:0.6rem;background:#fdf8ed;color:#c9a84c;border:1px solid #e8d89c;padding:1px 6px;border-radius:10px;vertical-align:middle;">Resent</span>';
+
+    // Open Activity cell
+    var openHtml = '';
+    if ((d.openCount || 0) > 0) {
+      openHtml = '<strong style="color:#3182ce;">' + d.openCount + ' open' + (d.openCount > 1 ? 's' : '') + '</strong>';
+      if (d.openedAt) openHtml += '<br><span style="font-size:0.65rem;color:var(--text-light);">First ' + formatDateTime(d.openedAt) + '</span>';
+    } else if (d.postItFlag && !d.postedAt) {
+      openHtml = '<span style="color:#e53e3e;font-weight:600;font-size:0.72rem;">POST IT</span>';
+    } else if (d.postedAt) {
+      openHtml = '<span style="color:#38a169;font-size:0.72rem;">Posted ' + formatDateTime(d.postedAt) + '</span>';
+      if (d.postalTrackingRef) openHtml += '<br><span style="font-size:0.6rem;color:var(--text-light);">RM: ' + escapeHtml(d.postalTrackingRef) + '</span>';
+    } else {
+      openHtml = '<span style="color:#ccc;font-size:0.85rem;">&#8212;</span>';
+    }
+    if (d.supersededBy) openHtml += '<br><span style="font-size:0.6rem;color:#aaa;text-decoration:line-through;">Superseded by ' + escapeHtml(d.supersededBy) + '</span>';
+    if (d.isResend && d.originalDeliveryRef) openHtml += '<br><span style="font-size:0.6rem;color:#aaa;">Replaces ' + escapeHtml(d.originalDeliveryRef) + '</span>';
+
     html += '<tr>'
       + '<td style="font-family:monospace;font-weight:600;color:var(--navy);">' + escapeHtml(d.deliveryRef) + '</td>'
-      + '<td>' + escapeHtml(d.tenantName) + '</td>'
-      + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyId) + '</td>'
+      + '<td>' + tenantHtml + '</td>'
+      + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyId || '') + '</td>'
       + '<td style="text-align:center;"><span class="badge badge-' + d.status + '">' + d.status.charAt(0).toUpperCase() + d.status.slice(1) + '</span></td>'
       + '<td style="text-align:center;" title="' + (d.sentAt ? formatDateTime(d.sentAt) : '') + '">' + tickOrCross(d.sentAt) + '</td>'
       + '<td style="text-align:center;" title="' + (d.deliveredAt ? formatDateTime(d.deliveredAt) : '') + '">' + tickOrCross(d.deliveredAt, d.status === 'bounced') + '</td>'
-      + '<td style="text-align:center;" title="' + (d.openedAt ? formatDateTime(d.openedAt) : '') + '">' + tickOrCross(d.openedAt) + '</td>'
+      + '<td style="text-align:center;">' + openHtml + '</td>'
       + '<td style="text-align:center;">' + postedCell(d) + '</td>'
       + '<td style="text-align:center;">' + certCell(d) + '</td>'
       + '<td style="text-align:center;">' + actionCell(d) + '</td>'
