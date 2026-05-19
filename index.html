@@ -982,7 +982,7 @@ function filterDashboard() {
     html += '<tr>'
       + '<td style="font-family:monospace;font-weight:600;color:var(--navy);">' + escapeHtml(d.deliveryRef) + '</td>'
       + '<td>' + tenantHtml + '</td>'
-      + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyId || '') + '</td>'
+      + '<td style="color:var(--text-light);">' + escapeHtml(d.propertyAddress || '') + (d.propertyId ? '<div style="font-size:0.65rem;color:#999;font-family:monospace;margin-top:2px;">' + escapeHtml(d.propertyId) + '</div>' : '') + '</td>'
       + '<td style="text-align:center;"><span class="badge badge-' + d.status + '">' + d.status.charAt(0).toUpperCase() + d.status.slice(1) + '</span></td>'
       + '<td style="text-align:center;" title="' + (d.sentAt ? formatDateTime(d.sentAt) : '') + '">' + tickOrCross(d.sentAt) + '</td>'
       + '<td style="text-align:center;" title="' + (d.deliveredAt ? formatDateTime(d.deliveredAt) : '') + '">' + tickOrCross(d.deliveredAt, d.status === 'bounced') + '</td>'
