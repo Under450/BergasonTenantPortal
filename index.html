@@ -372,7 +372,7 @@ body { font-family: Lato, 'Helvetica Neue', Arial, sans-serif; background: var(-
         <div class="form-group" style="margin-bottom:0;">
           <textarea class="form-input" id="ss-email-body" rows="4" placeholder="Body (leave blank for default)" style="font-size:0.8rem;resize:vertical;font-family:inherit;"></textarea>
         </div>
-        <div style="font-size:0.6rem;color:var(--text-mid);margin-top:3px;">Tags: <code>{{tenantName}}</code> <code>{{propertyAddress}}</code> <code>{{deliveryRef}}</code></div>
+        <div style="font-size:0.6rem;color:var(--text-mid);margin-top:3px;">Tags: <code>{{tenantName}}</code> <code>{{propertyAddress}}</code> <code>{{propertyId}}</code> <code>{{postalAddress}}</code> <code>{{deliveryRef}}</code></div>
       </div>
       <div id="ss-pdf-dropzone" class="dropzone" style="padding:1rem;margin-bottom:1rem;cursor:pointer;" onclick="document.getElementById('ss-pdf-file').click()">
         <input type="file" id="ss-pdf-file" accept=".pdf" multiple style="display:none" onchange="handleSingleSendPdf(event)"/>
@@ -420,7 +420,7 @@ var allDeliveries = [];
 var unsubscribeDashboard = null;
 
 var DEFAULT_EMAIL_SUBJECT = 'Important: Tenant Rights Act Notice — {{propertyAddress}}';
-var DEFAULT_EMAIL_BODY = 'Dear {{tenantName}},\n\nPlease find attached an important Tenant Rights Act notice relating to your property at {{propertyAddress}}.\n\nThis notice is being sent to you in accordance with our legal obligations as managing agent. Please read the attached document carefully and retain it for your records.\n\nDelivery Reference: {{deliveryRef}}\n\nIf you have any questions, please contact us at info@bergason.co.uk or call 01543 406028.\n\nKind regards,\nBergason Property Services\n8a Bore Street, Lichfield WS13 6LL';
+var DEFAULT_EMAIL_BODY = 'Dear {{tenantName}},\n\nPlease find attached an important Tenant Rights Act notice relating to your property at {{propertyAddress}}.\n\nThis notice is being sent to you in accordance with our legal obligations as managing agent. Please read the attached document carefully and retain it for your records.\n\nProperty ID: {{propertyId}}\nDelivery Reference: {{deliveryRef}}\n\nIf you have any questions, please contact us at info@bergason.co.uk or call 01543 406028.\n\nKind regards,\nBergason Property Services\n8a Bore Street, Lichfield WS13 6LL';
 
 function loadDefaultTemplate() {
   document.getElementById('email-subject').value = DEFAULT_EMAIL_SUBJECT;
